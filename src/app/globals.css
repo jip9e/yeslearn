@@ -1,0 +1,207 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme {
+  --color-background: #ffffff;
+  --color-foreground: #000000;
+
+  --color-card: #f8f8f8;
+  --color-card-foreground: #000000;
+
+  --color-popover: #ffffff;
+  --color-popover-foreground: #000000;
+
+  --color-primary: #000000;
+  --color-primary-foreground: #ffffff;
+
+  --color-secondary: #f1f1f1;
+  --color-secondary-foreground: #000000;
+
+  --color-muted: #f1f1f1;
+  --color-muted-foreground: #666666;
+
+  --color-accent: #ff6600;
+  --color-accent-foreground: #ffffff;
+
+  --color-destructive: #ef4444;
+  --color-destructive-foreground: #fafafa;
+
+  --color-border: #e5e5e5;
+  --color-input: #e5e5e5;
+  --color-ring: #000000;
+
+  --color-chart-1: #ff6600;
+  --color-chart-2: #2d8659;
+  --color-chart-3: #1e3a5f;
+  --color-chart-4: #f1c40f;
+  --color-chart-5: #e74c3c;
+
+  --color-sidebar: #ffffff;
+  --color-sidebar-foreground: #666666;
+  --color-sidebar-primary: #000000;
+  --color-sidebar-primary-foreground: #ffffff;
+  --color-sidebar-accent: #f8f8f8;
+  --color-sidebar-accent-foreground: #000000;
+  --color-sidebar-border: #e5e5e5;
+  --color-sidebar-ring: #000000;
+
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+
+  --radius-lg: 24px;
+  --radius-md: 16px;
+  --radius-sm: 8px;
+
+  --shadow-air: 0 10px 30px rgba(0, 0, 0, 0.05);
+
+  --animate-accordion-down: accordion-down 0.2s ease-out;
+  --animate-accordion-up: accordion-up 0.2s ease-out;
+
+  @keyframes accordion-down {
+    from {
+      height: 0;
+    }
+    to {
+      height: var(--radix-accordion-content-height);
+    }
+  }
+  @keyframes accordion-up {
+    from {
+      height: var(--radix-accordion-content-height);
+    }
+    to {
+      height: 0;
+    }
+  }
+}
+
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: #e5e5e5;
+  }
+
+  :root {
+    --background: #ffffff;
+    --foreground: #000000;
+    --card: #f8f8f8;
+    --card-foreground: #000000;
+    --popover: #ffffff;
+    --popover-foreground: #000000;
+    --primary: #000000;
+    --primary-foreground: #ffffff;
+    --secondary: #f1f1f1;
+    --secondary-foreground: #000000;
+    --muted: #f1f1f1;
+    --muted-foreground: #666666;
+    --accent: #ff6600;
+    --accent-foreground: #ffffff;
+    --destructive: #ef4444;
+    --destructive-foreground: #fafafa;
+    --border: #e5e5e5;
+    --input: #e5e5e5;
+    --ring: #000000;
+    --radius: 24px;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background-color: var(--background);
+    color: var(--foreground);
+    font-size: 18px;
+    line-height: 1.6;
+  }
+
+  h1 {
+    font-size: 64px;
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+  }
+
+  h2 {
+    font-size: 48px;
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+  }
+
+  h3 {
+    font-size: 24px;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+
+  .container {
+    width: 100%;
+    max-width: 1200px;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+
+  .font-display {
+    font-family: var(--font-sans);
+    font-weight: 700;
+  }
+
+  .font-body {
+    font-family: var(--font-sans);
+    font-weight: 400;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+@layer utilities {
+  .text-secondary-gray {
+    color: #666666;
+  }
+  
+  .bg-card-alt {
+    background-color: #f8f8f8;
+  }
+
+  .btn-pill {
+    border-radius: 9999px;
+    padding: 12px 24px;
+    font-weight: 500;
+    transition: all 0.2s ease-in-out;
+  }
+
+  .mockup-border {
+    border: 1px solid #000000;
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .university-logo {
+    filter: grayscale(100%);
+    opacity: 0.5;
+    transition: opacity 0.2s ease;
+  }
+
+  .university-logo:hover {
+    opacity: 0.8;
+  }
+}

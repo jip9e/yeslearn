@@ -12,10 +12,10 @@ const Footer = () => {
             <div className="flex h-[28px] w-[28px] items-center justify-center rounded-lg bg-black">
               <span className="text-white font-bold text-[14px]">Y</span>
             </div>
-            <span className="text-[18px] font-semibold tracking-tight text-black">YesLearn</span>
+            <span className="text-[18px] font-semibold tracking-tight text-black">YouLearn</span>
           </Link>
           <p className="text-[14px] leading-[21px] text-[#6d6d6d] font-sans">
-            © Copyright 2026 YesLearn Inc.
+            © Copyright 2026 YouLearn Inc.
           </p>
         </div>
 

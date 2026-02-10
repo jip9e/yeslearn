@@ -21,7 +21,7 @@ const FeaturesGrid = () => {
             className="font-body text-[#666666] leading-[1.6]"
             style={{ fontSize: '18px' }}
           >
-            From key takeaways to specific questions, we’ve got you covered.
+            Upload your content, and YouLearn handles the rest — from summaries to quizzes to AI chat.
           </p>
         </div>
 
@@ -39,13 +39,13 @@ const FeaturesGrid = () => {
               className="font-display text-foreground mb-[16px] leading-[1.3]"
               style={{ fontSize: '24px', fontWeight: 600 }}
             >
-              Summary, quizzes, podcast, and more
+              Summary, quizzes, AI chat, and more
             </h3>
             <p 
               className="font-body text-[#666666] leading-[1.6]"
               style={{ fontSize: '16px' }}
             >
-              Understand the key points, test your knowledge, get answers with references, and listen to an AI tutor.
+              Get AI-generated summaries of your content, test your knowledge with auto-generated quizzes, and chat with an AI tutor that understands your materials.
             </p>
           </div>
 
@@ -77,19 +77,19 @@ const FeaturesGrid = () => {
           </div>
         </div>
 
-        {/* Feature Highlights Grid (Secondary row placeholders for context) */}
+        {/* Feature Highlights Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-[32px] mt-[32px] w-full">
           <div className="bg-[#f8f8f8] rounded-[24px] p-[32px] text-left">
             <h4 className="font-display text-[20px] font-semibold mb-[12px]">Upload any content</h4>
-            <p className="text-[#666666] text-[16px] leading-[1.5]">From PDFs and YouTube videos to slides and even recorded lectures, learn everything your way.</p>
+            <p className="text-[#666666] text-[16px] leading-[1.5]">Support for PDFs, YouTube videos, websites, and audio recordings. Organize everything into learning spaces.</p>
           </div>
           <div className="bg-[#f8f8f8] rounded-[24px] p-[32px] text-left">
-            <h4 className="font-display text-[20px] font-semibold mb-[12px]">Test your knowledge</h4>
-            <p className="text-[#666666] text-[16px] leading-[1.5]">Create personalized exams, get answer breakdowns, and track your progress.</p>
+            <h4 className="font-display text-[20px] font-semibold mb-[12px]">Auto-generated quizzes</h4>
+            <p className="text-[#666666] text-[16px] leading-[1.5]">AI creates multiple-choice quizzes from your materials so you can test your understanding instantly.</p>
           </div>
           <div className="bg-[#f8f8f8] rounded-[24px] p-[32px] text-left">
-            <h4 className="font-display text-[20px] font-semibold mb-[12px]">Talk with an AI Tutor</h4>
-            <p className="text-[#666666] text-[16px] leading-[1.5]">Talk to an AI tutor to simplify ideas and receive guidance on the content.</p>
+            <h4 className="font-display text-[20px] font-semibold mb-[12px]">Chat with your content</h4>
+            <p className="text-[#666666] text-[16px] leading-[1.5]">Ask questions about your uploaded materials and get accurate answers grounded in your content.</p>
           </div>
         </div>
       </div>

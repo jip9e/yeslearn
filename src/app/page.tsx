@@ -3,6 +3,7 @@ import HeroSection from "@/components/sections/hero";
 import TrustedBySection from "@/components/sections/trusted-by";
 import FeaturesGrid from "@/components/sections/features-grid";
 import Testimonials from "@/components/sections/testimonials";
+import ComingSoon from "@/components/sections/coming-soon";
 import Footer from "@/components/sections/footer";
 import Link from "next/link";
 
@@ -14,6 +15,7 @@ export default function Home() {
       <TrustedBySection />
       <FeaturesGrid />
       <Testimonials />
+      <ComingSoon />
 
       {/* Final CTA Section */}
       <section className="bg-white py-[120px] px-6">
@@ -22,7 +24,7 @@ export default function Home() {
             Learn smarter, faster, easier.
           </h2>
           <p className="text-[#666666] text-lg mb-10 max-w-[500px]">
-            Join millions of learners using YesLearn to study more effectively.
+            Join thousands of learners using YouLearn to study more effectively.
           </p>
           <Link
             href="/dashboard"

@@ -4,8 +4,8 @@ import ThemeInit from "@/components/ThemeInit";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "YesLearn - AI Tutor Made For You",
-  description: "Turn your learning materials into notes, interactive chats, quizzes, and more with YesLearn.",
+  title: "YouLearn - AI Tutor Made For You",
+  description: "Turn your learning materials into notes, interactive chats, quizzes, and more with YouLearn.",
 };
 
 export default function RootLayout({

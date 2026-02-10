@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Palette, X } from "lucide-react";
+import { ArrowLeft, X } from "lucide-react";
 
 const COLORS = [
   { name: "Blue", value: "bg-blue-400", hex: "#60a5fa" },
@@ -25,6 +25,8 @@ export default function NewSpacePage() {
   const [selectedIcon, setSelectedIcon] = useState(ICONS[0]);
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
+  const [creating, setCreating] = useState(false);
+  const [error, setError] = useState("");
 
   const addTag = () => {
     if (tagInput.trim() && !tags.includes(tagInput.trim())) {
@@ -37,9 +39,33 @@ export default function NewSpacePage() {
     setTags(tags.filter((t) => t !== tag));
   };
 
-  const handleCreate = () => {
-    // No backend - just navigate to a space
-    router.push("/space/bio-101");
+  const handleCreate = async () => {
+    if (!name.trim()) return;
+    setCreating(true);
+    setError("");
+
+    try {
+      const res = await fetch("/api/spaces", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: name.trim(),
+          description: description.trim(),
+          icon: selectedIcon,
+          color: selectedColor.value,
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to create space");
+      }
+
+      const space = await res.json();
+      router.push(`/space/${space.id}`);
+    } catch (err) {
+      setError("Failed to create space. Please try again.");
+      setCreating(false);
+    }
   };
 
   return (
@@ -50,6 +76,10 @@ export default function NewSpacePage() {
 
       <h1 className="text-[28px] font-bold tracking-tight mb-1">Create New Space</h1>
       <p className="text-[#666] text-[15px] mb-8">Organize your learning materials into a focused space.</p>
+
+      {error && (
+        <div className="mb-4 p-3 rounded-xl bg-red-50 text-red-600 text-[13px]">{error}</div>
+      )}
 
       <div className="flex flex-col gap-6">
         {/* Preview */}
@@ -95,11 +125,10 @@ export default function NewSpacePage() {
               <button
                 key={icon}
                 onClick={() => setSelectedIcon(icon)}
-                className={`w-10 h-10 rounded-lg flex items-center justify-center text-lg transition-all ${
-                  selectedIcon === icon
+                className={`w-10 h-10 rounded-lg flex items-center justify-center text-lg transition-all ${selectedIcon === icon
                     ? "bg-[#f1f1f1] ring-2 ring-black/20 scale-110"
                     : "bg-white border border-[#e5e5e5] hover:bg-[#f8f8f8]"
-                }`}
+                  }`}
               >
                 {icon}
               </button>
@@ -115,11 +144,10 @@ export default function NewSpacePage() {
               <button
                 key={color.name}
                 onClick={() => setSelectedColor(color)}
-                className={`w-10 h-10 rounded-lg ${color.value} transition-all ${
-                  selectedColor.name === color.name
+                className={`w-10 h-10 rounded-lg ${color.value} transition-all ${selectedColor.name === color.name
                     ? "ring-2 ring-black/30 ring-offset-2 scale-110"
                     : "hover:scale-105"
-                }`}
+                  }`}
               />
             ))}
           </div>
@@ -169,10 +197,10 @@ export default function NewSpacePage() {
           </Link>
           <button
             onClick={handleCreate}
-            disabled={!name.trim()}
+            disabled={!name.trim() || creating}
             className="flex-1 py-3 rounded-xl bg-black text-white text-[14px] font-medium hover:opacity-90 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            Create Space
+            {creating ? "Creating..." : "Create Space"}
           </button>
         </div>
       </div>

@@ -63,14 +63,17 @@
     from {
       height: 0;
     }
+
     to {
       height: var(--radix-accordion-content-height);
     }
   }
+
   @keyframes accordion-up {
     from {
       height: var(--radix-accordion-content-height);
     }
+
     to {
       height: 0;
     }
@@ -78,6 +81,7 @@
 }
 
 @layer base {
+
   *,
   ::after,
   ::before,
@@ -177,7 +181,7 @@
   .text-secondary-gray {
     color: #666666;
   }
-  
+
   .bg-card-alt {
     background-color: #f8f8f8;
   }
@@ -203,5 +207,267 @@
 
   .university-logo:hover {
     opacity: 0.8;
+  }
+
+  /* ── AI Prose styling for markdown content ────────────── */
+  .prose-ai {
+    font-size: 14px;
+    line-height: 1.75;
+    color: #333;
+  }
+
+  .prose-ai h1,
+  .prose-ai h2,
+  .prose-ai h3,
+  .prose-ai h4 {
+    font-weight: 600;
+    line-height: 1.3;
+    margin-top: 1.25em;
+    margin-bottom: 0.5em;
+    color: #111;
+  }
+
+  .prose-ai h1 {
+    font-size: 22px;
+  }
+
+  .prose-ai h2 {
+    font-size: 18px;
+  }
+
+  .prose-ai h3 {
+    font-size: 16px;
+  }
+
+  .prose-ai h4 {
+    font-size: 15px;
+  }
+
+  .prose-ai p {
+    margin-bottom: 0.75em;
+  }
+
+  .prose-ai strong {
+    font-weight: 600;
+    color: #111;
+  }
+
+  .prose-ai ul,
+  .prose-ai ol {
+    margin: 0.5em 0;
+    padding-left: 1.5em;
+  }
+
+  .prose-ai ul {
+    list-style-type: disc;
+  }
+
+  .prose-ai ol {
+    list-style-type: decimal;
+  }
+
+  .prose-ai li {
+    margin-bottom: 0.25em;
+  }
+
+  .prose-ai li::marker {
+    color: #999;
+  }
+
+  .prose-ai code {
+    background: rgba(0, 0, 0, 0.06);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 13px;
+    font-family: 'Menlo', 'Monaco', monospace;
+  }
+
+  .prose-ai pre {
+    background: #1e1e2e;
+    color: #cdd6f4;
+    padding: 16px;
+    border-radius: 12px;
+    overflow-x: auto;
+    margin: 0.75em 0;
+  }
+
+  .prose-ai pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+  }
+
+  .prose-ai blockquote {
+    border-left: 3px solid #e5e5e5;
+    padding-left: 1em;
+    margin: 0.75em 0;
+    color: #666;
+    font-style: italic;
+  }
+
+  .prose-ai a {
+    color: #2563eb;
+    text-decoration: underline;
+  }
+
+  .prose-ai table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0.75em 0;
+    font-size: 13px;
+  }
+
+  .prose-ai th,
+  .prose-ai td {
+    border: 1px solid #e5e5e5;
+    padding: 8px 12px;
+    text-align: left;
+  }
+
+  .prose-ai th {
+    background: #f5f5f5;
+    font-weight: 600;
+  }
+
+  .prose-ai hr {
+    border: none;
+    border-top: 1px solid #e5e5e5;
+    margin: 1.5em 0;
+  }
+
+  /* ── Typing dots animation ────────────────────────────── */
+  .typing-dots {
+    display: inline-flex;
+    gap: 4px;
+    align-items: center;
+    padding: 4px 0;
+  }
+
+  .typing-dots span {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #999;
+    animation: typingFade 1.4s ease-in-out infinite;
+  }
+
+  .typing-dots span:nth-child(2) {
+    animation-delay: 0.2s;
+  }
+
+  .typing-dots span:nth-child(3) {
+    animation-delay: 0.4s;
+  }
+
+  @keyframes typingFade {
+    0%, 60%, 100% {
+      opacity: 0.25;
+    }
+    30% {
+      opacity: 1;
+    }
+  }
+
+  /* ── Panel Resize Handle ─────────────────────────────── */
+  .resize-handle {
+    width: 6px;
+    cursor: col-resize;
+    position: relative;
+    flex-shrink: 0;
+    z-index: 10;
+    background: transparent;
+    transition: background-color 0.15s ease;
+  }
+
+  .resize-handle::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 3px;
+    height: 32px;
+    border-radius: 2px;
+    background: #d4d4d4;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+  }
+
+  .resize-handle:hover::after,
+  .resize-handle.dragging::after {
+    opacity: 1;
+  }
+
+  .resize-handle:hover {
+    background: #f0f0f0;
+  }
+
+  .resize-handle.dragging {
+    background: #e7e7e7;
+  }
+
+  .resize-handle.dragging::after {
+    background: #888;
+  }
+
+  :is(.dark) .resize-handle::after {
+    background: #444;
+  }
+
+  :is(.dark) .resize-handle:hover {
+    background: #1a1a1a;
+  }
+
+  :is(.dark) .resize-handle.dragging {
+    background: #222;
+  }
+
+  :is(.dark) .resize-handle.dragging::after {
+    background: #888;
+  }
+
+  /* ── Warm background utilities ────────────────────────── */
+  .bg-warm {
+    background-color: #faf9f7;
+  }
+
+  .bg-warm-subtle {
+    background-color: #f5f3ef;
+  }
+
+  .text-warm {
+    color: #4a4a4a;
+  }
+
+  .text-warm-muted {
+    color: #8a8a8a;
+  }
+
+  .border-warm {
+    border-color: #e8e5df;
+  }
+
+  /* ── PDF Viewer (react-pdf) ──────────────────────────── */
+  .react-pdf__Page {
+    position: relative;
+  }
+
+  .react-pdf__Page__textContent {
+    user-select: text !important;
+    cursor: text !important;
+  }
+
+  .react-pdf__Page__textContent span::selection {
+    background: rgba(59, 130, 246, 0.3);
+  }
+
+  .react-pdf__Page__textContent span::-moz-selection {
+    background: rgba(59, 130, 246, 0.3);
+  }
+
+  .react-pdf__Document {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
   }
 }

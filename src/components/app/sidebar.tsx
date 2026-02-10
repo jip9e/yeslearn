@@ -1,141 +1,187 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect, createContext, useContext } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Home,
-  FolderOpen,
-  Clock,
   Plus,
   Settings,
   Search,
   ChevronDown,
   ChevronRight,
-  LogOut,
   BookOpen,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from "lucide-react";
 
-const SAMPLE_SPACES = [
-  { id: "bio-101", name: "Biology 101", color: "bg-blue-400", items: 12 },
-  { id: "ml-research", name: "ML Research", color: "bg-green-400", items: 8 },
-  { id: "history-notes", name: "History Notes", color: "bg-purple-400", items: 5 },
-  { id: "physics-201", name: "Physics 201", color: "bg-orange-400", items: 15 },
-  { id: "cs-algorithms", name: "CS Algorithms", color: "bg-red-400", items: 7 },
-];
+interface Space {
+  id: string;
+  name: string;
+  color: string;
+  icon: string;
+  itemCount: number;
+}
 
-const RECENT_ITEMS = [
-  { name: "Cell Division Lecture", type: "YouTube", spaceId: "bio-101" },
-  { name: "Neural Networks Paper", type: "PDF", spaceId: "ml-research" },
-  { name: "World War II Notes", type: "Notes", spaceId: "history-notes" },
-];
+// Context for sidebar collapse state
+const SidebarContext = createContext<{ collapsed: boolean; toggle: () => void }>({
+  collapsed: false,
+  toggle: () => { },
+});
+
+export function useSidebar() {
+  return useContext(SidebarContext);
+}
+
+export function SidebarProvider({ children }: { children: React.ReactNode }) {
+  const [collapsed, setCollapsed] = useState(false);
+
+  useEffect(() => {
+    const saved = localStorage.getItem("sidebar-collapsed");
+    if (saved === "true") setCollapsed(true);
+  }, []);
+
+  const toggle = () => {
+    setCollapsed((c) => {
+      localStorage.setItem("sidebar-collapsed", String(!c));
+      return !c;
+    });
+  };
+
+  return (
+    <SidebarContext.Provider value={{ collapsed, toggle }}>
+      {children}
+    </SidebarContext.Provider>
+  );
+}
 
 export default function AppSidebar() {
   const pathname = usePathname();
+  const { collapsed, toggle } = useSidebar();
   const [spacesOpen, setSpacesOpen] = useState(true);
-  const [recentOpen, setRecentOpen] = useState(true);
+  const [spaces, setSpaces] = useState<Space[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const isActive = (path: string) => pathname === path;
+  const isSpaceActive = (id: string) => pathname === `/space/${id}`;
+
+  useEffect(() => {
+    fetch("/api/spaces")
+      .then((res) => res.json())
+      .then((data) => {
+        setSpaces(data);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, [pathname]);
+
+  // Get initial letter for space icon
+  const getInitial = (name: string) => name.charAt(0).toUpperCase();
 
   return (
-    <aside className="w-[260px] h-screen bg-white border-r border-[#e5e5e5] flex flex-col shrink-0 overflow-hidden">
+    <aside
+      className={`h-screen bg-white dark:bg-[#0a0a0a] border-r border-[#eee] dark:border-[#1a1a1a] flex flex-col shrink-0 overflow-hidden transition-all duration-300 ease-in-out ${collapsed ? "w-[60px]" : "w-[240px]"
+        }`}
+    >
       {/* Header */}
-      <div className="px-5 py-4 border-b border-[#e5e5e5]">
-        <Link href="/" className="flex items-center gap-2.5">
-          <div className="flex h-[28px] w-[28px] items-center justify-center rounded-lg bg-black">
-            <span className="text-white font-bold text-[13px]">Y</span>
-          </div>
-          <span className="text-[16px] font-semibold tracking-tight">YesLearn</span>
-        </Link>
+      <div className="px-3 py-3 flex items-center justify-between shrink-0">
+        {!collapsed && (
+          <Link href="/dashboard" className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-black dark:bg-white flex items-center justify-center">
+              <span className="text-white dark:text-black font-bold text-[12px]">Y</span>
+            </div>
+            <span className="text-[15px] font-semibold tracking-tight dark:text-white">YesLearn</span>
+          </Link>
+        )}
+        <button
+          onClick={toggle}
+          className={`p-1.5 rounded-lg hover:bg-[#f0f0f0] dark:hover:bg-[#1a1a1a] transition-colors text-[#888] ${collapsed ? "mx-auto" : ""}`}
+        >
+          {collapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
+        </button>
       </div>
 
       {/* Search */}
-      <div className="px-4 py-3">
-        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#f5f5f5] text-[#999]">
-          <Search size={14} />
-          <span className="text-[13px]">Search...</span>
+      {!collapsed && (
+        <div className="px-3 pb-2">
+          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#f5f5f5] dark:bg-[#141414] text-[#999]">
+            <Search size={13} />
+            <span className="text-[12px]">Search...</span>
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Main Nav */}
-      <nav className="px-3 flex-1 overflow-y-auto">
+      {/* Nav */}
+      <nav className="px-2 flex-1 overflow-y-auto">
         <div className="flex flex-col gap-0.5">
           <Link
             href="/dashboard"
-            className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium transition-colors ${
-              isActive("/dashboard")
-                ? "bg-[#f1f1f1] text-black"
-                : "text-[#666] hover:bg-[#f8f8f8] hover:text-black"
-            }`}
+            className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] font-medium transition-all duration-150 ${isActive("/dashboard")
+                ? "bg-[#f0f0f0] dark:bg-[#1a1a1a] text-black dark:text-white"
+                : "text-[#666] dark:text-[#888] hover:bg-[#f5f5f5] dark:hover:bg-[#141414] hover:text-black dark:hover:text-white"
+              } ${collapsed ? "justify-center" : ""}`}
           >
             <Home size={16} />
-            Home
+            {!collapsed && "Home"}
           </Link>
 
-          {/* Spaces section */}
-          <div className="mt-4">
-            <button
-              onClick={() => setSpacesOpen(!spacesOpen)}
-              className="flex items-center justify-between w-full px-3 py-1.5 text-[11px] font-semibold text-[#999] uppercase tracking-wider hover:text-[#666]"
-            >
-              <span>My Spaces</span>
-              {spacesOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-            </button>
+          {/* Spaces */}
+          <div className="mt-3">
+            {!collapsed && (
+              <button
+                onClick={() => setSpacesOpen(!spacesOpen)}
+                className="flex items-center justify-between w-full px-2.5 py-1.5 text-[10px] font-semibold text-[#aaa] dark:text-[#555] uppercase tracking-widest hover:text-[#666] dark:hover:text-[#888]"
+              >
+                <span>Spaces</span>
+                {spacesOpen ? <ChevronDown size={10} /> : <ChevronRight size={10} />}
+              </button>
+            )}
 
-            {spacesOpen && (
-              <div className="flex flex-col gap-0.5 mt-1">
-                {SAMPLE_SPACES.map((space) => (
-                  <Link
-                    key={space.id}
-                    href={`/space/${space.id}`}
-                    className={`flex items-center justify-between px-3 py-2 rounded-lg text-[13px] transition-colors group ${
-                      pathname === `/space/${space.id}`
-                        ? "bg-[#f1f1f1] text-black font-medium"
-                        : "text-[#666] hover:bg-[#f8f8f8] hover:text-black"
-                    }`}
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <div className={`w-3 h-3 rounded-sm ${space.color}`} />
-                      <span className="truncate max-w-[140px]">{space.name}</span>
-                    </div>
-                    <span className="text-[11px] text-[#bbb] group-hover:text-[#999]">
-                      {space.items}
-                    </span>
-                  </Link>
-                ))}
+            {(collapsed || spacesOpen) && (
+              <div className="flex flex-col gap-0.5 mt-0.5">
+                {loading ? (
+                  <div className={`px-2.5 py-2 text-[11px] text-[#ccc] ${collapsed ? "text-center" : ""}`}>
+                    {collapsed ? "..." : "Loading..."}
+                  </div>
+                ) : spaces.length === 0 ? (
+                  <div className={`px-2.5 py-2 text-[11px] text-[#ccc] ${collapsed ? "text-center" : ""}`}>
+                    {collapsed ? "—" : "No spaces yet"}
+                  </div>
+                ) : (
+                  spaces.map((space) => (
+                    <Link
+                      key={space.id}
+                      href={`/space/${space.id}`}
+                      title={collapsed ? space.name : undefined}
+                      className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] transition-all duration-150 group ${isSpaceActive(space.id)
+                          ? "bg-[#f0f0f0] dark:bg-[#1a1a1a] text-black dark:text-white font-medium"
+                          : "text-[#666] dark:text-[#888] hover:bg-[#f5f5f5] dark:hover:bg-[#141414] hover:text-black dark:hover:text-white"
+                        } ${collapsed ? "justify-center" : ""}`}
+                    >
+                      <div className={`w-6 h-6 rounded-md flex items-center justify-center text-[11px] font-semibold shrink-0 ${isSpaceActive(space.id)
+                          ? "bg-black dark:bg-white text-white dark:text-black"
+                          : "bg-[#f0f0f0] dark:bg-[#1a1a1a] text-[#666] dark:text-[#888]"
+                        }`}>
+                        {getInitial(space.name)}
+                      </div>
+                      {!collapsed && (
+                        <>
+                          <span className="truncate flex-1">{space.name}</span>
+                          <span className="text-[10px] text-[#ccc] dark:text-[#444] group-hover:text-[#999]">
+                            {space.itemCount}
+                          </span>
+                        </>
+                      )}
+                    </Link>
+                  ))
+                )}
                 <Link
                   href="/space/new"
-                  className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] text-[#999] hover:bg-[#f8f8f8] hover:text-black transition-colors"
+                  title={collapsed ? "New Space" : undefined}
+                  className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] text-[#aaa] dark:text-[#555] hover:bg-[#f5f5f5] dark:hover:bg-[#141414] hover:text-black dark:hover:text-white transition-all duration-150 ${collapsed ? "justify-center" : ""}`}
                 >
                   <Plus size={14} />
-                  <span>New Space</span>
+                  {!collapsed && <span>New Space</span>}
                 </Link>
-              </div>
-            )}
-          </div>
-
-          {/* Recent section */}
-          <div className="mt-4">
-            <button
-              onClick={() => setRecentOpen(!recentOpen)}
-              className="flex items-center justify-between w-full px-3 py-1.5 text-[11px] font-semibold text-[#999] uppercase tracking-wider hover:text-[#666]"
-            >
-              <span>Recent</span>
-              {recentOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-            </button>
-
-            {recentOpen && (
-              <div className="flex flex-col gap-0.5 mt-1">
-                {RECENT_ITEMS.map((item, i) => (
-                  <Link
-                    key={i}
-                    href={`/space/${item.spaceId}`}
-                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] text-[#666] hover:bg-[#f8f8f8] hover:text-black transition-colors"
-                  >
-                    <Clock size={14} className="text-[#bbb] shrink-0" />
-                    <span className="truncate">{item.name}</span>
-                    <span className="ml-auto text-[10px] text-[#ccc] shrink-0">{item.type}</span>
-                  </Link>
-                ))}
               </div>
             )}
           </div>
@@ -143,27 +189,18 @@ export default function AppSidebar() {
       </nav>
 
       {/* Bottom */}
-      <div className="border-t border-[#e5e5e5] px-3 py-3 flex flex-col gap-0.5">
+      <div className="border-t border-[#eee] dark:border-[#1a1a1a] px-2 py-2 flex flex-col gap-0.5">
         <Link
           href="/settings"
-          className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] transition-colors ${
-            isActive("/settings")
-              ? "bg-[#f1f1f1] text-black font-medium"
-              : "text-[#666] hover:bg-[#f8f8f8] hover:text-black"
-          }`}
+          title={collapsed ? "Settings" : undefined}
+          className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] transition-all duration-150 ${isActive("/settings")
+              ? "bg-[#f0f0f0] dark:bg-[#1a1a1a] text-black dark:text-white font-medium"
+              : "text-[#666] dark:text-[#888] hover:bg-[#f5f5f5] dark:hover:bg-[#141414] hover:text-black dark:hover:text-white"
+            } ${collapsed ? "justify-center" : ""}`}
         >
           <Settings size={16} />
-          Settings
+          {!collapsed && "Settings"}
         </Link>
-        <div className="flex items-center gap-3 px-3 py-2 mt-1">
-          <div className="w-8 h-8 rounded-full bg-blue-400 flex items-center justify-center shrink-0">
-            <span className="text-white text-[11px] font-bold">AJ</span>
-          </div>
-          <div className="flex flex-col min-w-0">
-            <span className="text-[13px] font-medium truncate">Alex Johnson</span>
-            <span className="text-[11px] text-[#999] truncate">alex@example.com</span>
-          </div>
-        </div>
       </div>
     </aside>
   );

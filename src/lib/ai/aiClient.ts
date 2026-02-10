@@ -1,0 +1,246 @@
+import { resolveCopilotBearer } from "../auth/providers/githubCopilot";
+import { resolveGeminiAuth } from "../auth/providers/googleGeminiCli";
+import { getDefaultProfile } from "../auth/tokenStore";
+import type { ResolvedAuth } from "../auth/types";
+
+// ── Types ────────────────────────────────────────────────────
+
+export interface ChatMessage {
+    role: "system" | "user" | "assistant";
+    content: string;
+}
+
+export interface ChatCompletionResult {
+    content: string;
+    model: string;
+    provider: string;
+}
+
+export interface ModelInfo {
+    id: string;
+    name: string;
+    provider: string;
+    capabilities: string[];
+}
+
+// ── Copilot Chat Completions ─────────────────────────────────
+
+const COPILOT_CHAT_URL = "https://api.individual.githubcopilot.com/chat/completions";
+const COPILOT_MODELS_URL = "https://api.individual.githubcopilot.com/models";
+
+async function copilotChatCompletion(
+    model: string,
+    messages: ChatMessage[]
+): Promise<ChatCompletionResult> {
+    const auth = await resolveCopilotBearer();
+
+    const res = await fetch(COPILOT_CHAT_URL, {
+        method: "POST",
+        headers: {
+            Authorization: `Bearer ${auth.bearerToken}`,
+            "Content-Type": "application/json",
+            "Copilot-Integration-Id": "vscode-chat",
+            "Editor-Version": "vscode/1.99.0",
+            "Editor-Plugin-Version": "copilot-chat/0.26.0",
+            "User-Agent": "YesLearn-App",
+        },
+        body: JSON.stringify({
+            model,
+            messages,
+            temperature: 0.4,
+            top_p: 1,
+            max_tokens: 4096,
+            stream: false,
+        }),
+    });
+
+    if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`Copilot chat failed (${res.status}): ${text.slice(0, 200)}`);
+    }
+
+    const data = await res.json();
+    const choice = data.choices?.[0];
+    return {
+        content: choice?.message?.content || "No response generated.",
+        model: data.model || model,
+        provider: "github-copilot",
+    };
+}
+
+async function fetchCopilotModels(): Promise<ModelInfo[]> {
+    try {
+        const auth = await resolveCopilotBearer();
+        const res = await fetch(COPILOT_MODELS_URL, {
+            headers: {
+                Authorization: `Bearer ${auth.bearerToken}`,
+                Accept: "application/json",
+                "Copilot-Integration-Id": "vscode-chat",
+                "Editor-Version": "vscode/1.99.0",
+                "Editor-Plugin-Version": "copilot-chat/0.26.0",
+                "User-Agent": "YesLearn-App",
+            },
+        });
+
+        if (!res.ok) return getDefaultCopilotModels();
+
+        const data = await res.json();
+        if (Array.isArray(data)) {
+            return data.map((m: { id: string; name?: string; capabilities?: string }) => ({
+                id: m.id,
+                name: m.name || m.id,
+                provider: "github-copilot",
+                capabilities: ["chat"],
+            }));
+        }
+
+        return getDefaultCopilotModels();
+    } catch {
+        return getDefaultCopilotModels();
+    }
+}
+
+function getDefaultCopilotModels(): ModelInfo[] {
+    return [
+        { id: "gpt-4o", name: "GPT-4o", provider: "github-copilot", capabilities: ["chat"] },
+        { id: "gpt-4.1", name: "GPT-4.1", provider: "github-copilot", capabilities: ["chat"] },
+        { id: "gpt-4o-mini", name: "GPT-4o Mini", provider: "github-copilot", capabilities: ["chat"] },
+        { id: "claude-sonnet-4", name: "Claude Sonnet 4", provider: "github-copilot", capabilities: ["chat"] },
+        { id: "claude-3.5-sonnet", name: "Claude 3.5 Sonnet", provider: "github-copilot", capabilities: ["chat"] },
+        { id: "o4-mini", name: "o4-mini", provider: "github-copilot", capabilities: ["chat"] },
+        { id: "o3-mini", name: "o3-mini", provider: "github-copilot", capabilities: ["chat"] },
+    ];
+}
+
+// ── Gemini Chat via generativelanguage API ────────────────────
+
+const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta";
+
+async function geminiChatCompletion(
+    model: string,
+    messages: ChatMessage[]
+): Promise<ChatCompletionResult> {
+    const auth = await resolveGeminiAuth();
+
+    // Convert ChatMessage format to Gemini's format
+    const systemInstruction = messages.find(m => m.role === "system");
+    const conversationMessages = messages.filter(m => m.role !== "system");
+
+    const contents = conversationMessages.map(m => ({
+        role: m.role === "assistant" ? "model" : "user",
+        parts: [{ text: m.content }],
+    }));
+
+    const body: Record<string, unknown> = { contents };
+    if (systemInstruction) {
+        body.systemInstruction = { parts: [{ text: systemInstruction.content }] };
+    }
+    body.generationConfig = { temperature: 0.4, maxOutputTokens: 8192 };
+
+    const res = await fetch(`${GEMINI_API_BASE}/models/${model}:generateContent`, {
+        method: "POST",
+        headers: {
+            Authorization: `Bearer ${auth.token}`,
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+    });
+
+    if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`Gemini chat failed (${res.status}): ${text.slice(0, 200)}`);
+    }
+
+    const data = await res.json();
+    const textContent = data.candidates?.[0]?.content?.parts?.[0]?.text || "No response generated.";
+    return {
+        content: textContent,
+        model,
+        provider: "google-gemini-cli",
+    };
+}
+
+async function fetchGeminiModels(): Promise<ModelInfo[]> {
+    try {
+        const auth = await resolveGeminiAuth();
+        const res = await fetch(`${GEMINI_API_BASE}/models`, {
+            headers: {
+                Authorization: `Bearer ${auth.token}`,
+                Accept: "application/json",
+            },
+        });
+
+        if (!res.ok) return getDefaultGeminiModels();
+
+        const data = await res.json();
+        if (data.models && Array.isArray(data.models)) {
+            return data.models
+                .filter((m: { name: string; supportedGenerationMethods?: string[] }) =>
+                    m.supportedGenerationMethods?.includes("generateContent")
+                )
+                .map((m: { name: string; displayName?: string; supportedGenerationMethods?: string[] }) => ({
+                    id: m.name.replace("models/", ""),
+                    name: m.displayName || m.name.replace("models/", ""),
+                    provider: "google-gemini-cli",
+                    capabilities: m.supportedGenerationMethods || ["generateContent"],
+                }))
+                .slice(0, 20); // limit to top 20
+        }
+
+        return getDefaultGeminiModels();
+    } catch {
+        return getDefaultGeminiModels();
+    }
+}
+
+function getDefaultGeminiModels(): ModelInfo[] {
+    return [
+        { id: "gemini-2.5-pro", name: "Gemini 2.5 Pro", provider: "google-gemini-cli", capabilities: ["chat"] },
+        { id: "gemini-2.5-flash", name: "Gemini 2.5 Flash", provider: "google-gemini-cli", capabilities: ["chat"] },
+        { id: "gemini-2.0-flash", name: "Gemini 2.0 Flash", provider: "google-gemini-cli", capabilities: ["chat"] },
+    ];
+}
+
+// ── Unified dispatch ─────────────────────────────────────────
+
+export async function chatCompletion(
+    model: string,
+    messages: ChatMessage[]
+): Promise<ChatCompletionResult> {
+    // Auto-detect provider from model name or settings
+    if (isGeminiModel(model)) {
+        return geminiChatCompletion(model, messages);
+    }
+    // Default to Copilot
+    return copilotChatCompletion(model, messages);
+}
+
+function isGeminiModel(model: string): boolean {
+    return model.startsWith("gemini-") || model.startsWith("models/gemini");
+}
+
+// ── Fetch all available models ───────────────────────────────
+
+export async function fetchAllModels(): Promise<ModelInfo[]> {
+    const results: ModelInfo[] = [];
+    const promises: Promise<void>[] = [];
+
+    // Check which providers are connected
+    const copilotProfile = getDefaultProfile("github-copilot");
+    const geminiProfile = getDefaultProfile("google-gemini-cli");
+
+    if (copilotProfile) {
+        promises.push(
+            fetchCopilotModels().then(models => { results.push(...models); })
+        );
+    }
+
+    if (geminiProfile) {
+        promises.push(
+            fetchGeminiModels().then(models => { results.push(...models); })
+        );
+    }
+
+    await Promise.allSettled(promises);
+    return results;
+}

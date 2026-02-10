@@ -138,14 +138,18 @@ function ToolCard({ icon, label, color, onClick, loading, description }: {
     <button
       onClick={onClick}
       disabled={loading}
-      className="flex items-center gap-3 p-3.5 rounded-xl border border-[#eee] dark:border-[#222] bg-white dark:bg-[#111] hover:bg-[#f8f8f8] dark:hover:bg-[#1a1a1a] hover:border-[#ddd] dark:hover:border-[#333] transition-all duration-200 hover:shadow-sm active:scale-[0.98] disabled:opacity-50"
+      className="group flex items-center gap-3 p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 hover:bg-gradient-to-br hover:from-gray-50 hover:to-white dark:hover:from-gray-800 dark:hover:to-gray-900 hover:border-gray-300 dark:hover:border-gray-700 transition-all duration-300 hover:shadow-lg active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
     >
-      <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 bg-[#f0f0f0] dark:bg-[#1a1a1a]">
-        {loading ? <Loader2 size={15} className="animate-spin text-[#888]" /> : <span className="text-[#555] dark:text-[#888]">{icon}</span>}
+      <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-gradient-to-br from-gray-100 to-gray-50 dark:from-gray-800 dark:to-gray-900 group-hover:scale-110 transition-transform shadow-sm">
+        {loading ? (
+          <Loader2 size={18} className="animate-spin text-gray-600 dark:text-gray-400" />
+        ) : (
+          <span className="text-gray-700 dark:text-gray-300">{icon}</span>
+        )}
       </div>
-      <div className="text-left min-w-0">
-        <span className="text-[13px] font-medium text-[#333] dark:text-[#ccc] block">{label}</span>
-        {description && <span className="text-[11px] text-[#999] dark:text-[#666] block">{description}</span>}
+      <div className="text-left min-w-0 flex-1">
+        <span className="text-[14px] font-medium text-gray-900 dark:text-white block">{label}</span>
+        {description && <span className="text-[12px] text-gray-500 dark:text-gray-400 block mt-0.5">{description}</span>}
       </div>
     </button>
   );
@@ -415,89 +419,138 @@ export default function SpaceDetailPage() {
   /* ════════════════════════ RENDER ══════════════════════ */
 
   return (
-    <div className="h-full flex flex-col bg-[#fafafa] dark:bg-[#0a0a0a]">
-      {/* ── Top Bar ───────────────────────────────────────── */}
-      <div className="border-b border-[#eee] dark:border-[#1a1a1a] bg-white dark:bg-[#0a0a0a] px-4 py-2.5 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-2">
-          <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-1.5 rounded-lg hover:bg-[#f0f0f0] dark:hover:bg-[#1a1a1a] transition-colors text-[#888]" title={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}>
+    <div className="h-full flex flex-col bg-gradient-to-br from-gray-50 via-white to-gray-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950">
+      {/* ── Enhanced Top Bar ───────────────────────────────────────── */}
+      <div className="border-b border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg px-5 py-3 flex items-center justify-between shrink-0 shadow-sm">
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={() => setSidebarOpen(!sidebarOpen)} 
+            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-all text-gray-600 dark:text-gray-400" 
+            title={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
+          >
             {sidebarOpen ? <PanelLeftClose size={18} /> : <PanelLeftOpen size={18} />}
           </button>
-          <Link href="/dashboard" className="text-[#999] hover:text-black dark:hover:text-white transition-colors">
-            <ArrowLeft size={16} />
+          <Link href="/dashboard" className="p-2 rounded-lg text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-all">
+            <ArrowLeft size={18} />
           </Link>
-          <div className="flex items-center gap-2 text-[14px]">
-            <div className="w-6 h-6 rounded-md bg-[#f0f0f0] dark:bg-[#1a1a1a] flex items-center justify-center text-[11px] font-semibold text-[#555] dark:text-[#888]">
+          <div className="flex items-center gap-3 text-[15px]">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-[14px] font-bold shadow-md">
               {space.name.charAt(0).toUpperCase()}
             </div>
-            <span className="font-semibold dark:text-white">{space.name}</span>
+            <span className="font-semibold text-gray-900 dark:text-white">{space.name}</span>
             {selectedItem && (
               <>
-                <span className="text-[#ccc]">/</span>
-                <span className="text-[#888]">{selectedItem.name}</span>
+                <span className="text-gray-300 dark:text-gray-700">/</span>
+                <span className="text-gray-600 dark:text-gray-400 truncate max-w-[200px]">{selectedItem.name}</span>
               </>
             )}
           </div>
         </div>
-        <Link href={`/dashboard/add?spaceId=${space.id}`} className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-black dark:bg-white text-white dark:text-black text-[12px] font-medium hover:opacity-90 transition-opacity">
-          <Plus size={12} /> Add Content
+        <Link 
+          href={`/dashboard/add?spaceId=${space.id}`} 
+          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-[13px] font-medium hover:opacity-90 transition-all shadow-sm hover:shadow-md"
+        >
+          <Plus size={14} /> Add Content
         </Link>
       </div>
 
       {/* ── Main 3-Column Layout ─────────────────────────── */}
       <div className="flex-1 flex overflow-hidden" ref={mainContainerRef}>
 
-        {/* ═══ SIDEBAR (collapsible) ═══ */}
-        <div className={`bg-white dark:bg-[#0a0a0a] border-r border-[#eee] dark:border-[#1a1a1a] overflow-y-auto shrink-0 transition-all duration-300 ease-in-out ${sidebarOpen ? "w-[240px]" : "w-0 overflow-hidden"}`}>
-          <div className="w-[240px]">
-            <div className="p-3">
-              <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#f5f5f5] dark:bg-[#141414]">
-                <Search size={13} className="text-[#999]" />
+        {/* ═══ ENHANCED SIDEBAR (collapsible) ═══ */}
+        <div className={`bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 overflow-y-auto shrink-0 transition-all duration-300 ease-in-out ${sidebarOpen ? "w-[280px]" : "w-0 overflow-hidden"}`}>
+          <div className="w-[280px]">
+            <div className="p-4">
+              <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-gray-100 dark:bg-gray-800 shadow-sm">
+                <Search size={14} className="text-gray-400" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search..."
-                  className="bg-transparent text-[12px] outline-none flex-1 placeholder:text-[#999] dark:text-white"
+                  placeholder="Search content..."
+                  className="bg-transparent text-[13px] outline-none flex-1 placeholder:text-gray-400 text-gray-900 dark:text-white"
                 />
               </div>
             </div>
             {filteredItems.length === 0 ? (
-              <div className="px-4 py-6 text-center">
-                <p className="text-[12px] text-[#999] mb-2">{space.contentItems.length === 0 ? "No content yet" : "No results"}</p>
+              <div className="px-5 py-8 text-center">
+                <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mx-auto mb-3">
+                  <FileText size={20} className="text-gray-400" />
+                </div>
+                <p className="text-[13px] text-gray-500 dark:text-gray-400 mb-3">
+                  {space.contentItems.length === 0 ? "No content yet" : "No results found"}
+                </p>
                 {space.contentItems.length === 0 && (
-                  <Link href={`/dashboard/add?spaceId=${space.id}`} className="text-[12px] text-black dark:text-white font-medium hover:opacity-70">+ Add content</Link>
+                  <Link 
+                    href={`/dashboard/add?spaceId=${space.id}`} 
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-[13px] font-medium hover:opacity-90 transition-all"
+                  >
+                    <Plus size={14} /> Add Content
+                  </Link>
                 )}
               </div>
             ) : (
-              filteredItems.map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => setSelectedContent(item.id)}
-                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-all duration-150 ${selectedContent === item.id ? "bg-[#f0f0f0] dark:bg-[#1a1a1a] border-l-2 border-black dark:border-white" : "hover:bg-[#f5f5f5] dark:hover:bg-[#111] border-l-2 border-transparent"
+              <div className="px-2 pb-2">
+                {filteredItems.map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => setSelectedContent(item.id)}
+                    className={`w-full flex items-center gap-3 px-3 py-3 text-left rounded-lg transition-all duration-200 mb-1 ${
+                      selectedContent === item.id 
+                        ? "bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border border-blue-200 dark:border-blue-800 shadow-sm" 
+                        : "hover:bg-gray-50 dark:hover:bg-gray-800/50"
                     }`}
-                >
-                  <div className="w-7 h-7 rounded-lg bg-[#f0f0f0] dark:bg-[#1a1a1a] flex items-center justify-center shrink-0">{getTypeIcon(item.type)}</div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[12px] font-medium truncate dark:text-white">{item.name}</p>
-                    <p className="text-[10px] text-[#999]">{item.type} · {timeAgo(item.createdAt)}</p>
-                  </div>
-                </button>
-              ))
+                  >
+                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
+                      selectedContent === item.id
+                        ? "bg-gradient-to-br from-blue-500 to-purple-500 text-white shadow-md"
+                        : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400"
+                    }`}>
+                      {getTypeIcon(item.type)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-[13px] font-medium truncate ${
+                        selectedContent === item.id 
+                          ? "text-gray-900 dark:text-white" 
+                          : "text-gray-700 dark:text-gray-300"
+                      }`}>
+                        {item.name}
+                      </p>
+                      <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
+                        {item.type} · {timeAgo(item.createdAt)}
+                      </p>
+                    </div>
+                  </button>
+                ))}
+              </div>
             )}
           </div>
         </div>
 
-        {/* ═══ CONTENT VIEWER (left/center) ═══ */}
-        <div className={`flex-1 overflow-hidden bg-[#fafafa] dark:bg-[#0a0a0a] transition-all duration-300 flex flex-col ${aiPanelExpanded ? "hidden" : ""}`} ref={contentRef}>
+        {/* ═══ ENHANCED CONTENT VIEWER (left/center) ═══ */}
+        <div className={`flex-1 overflow-hidden bg-gradient-to-br from-gray-50 to-white dark:from-gray-950 dark:to-gray-900 transition-all duration-300 flex flex-col ${aiPanelExpanded ? "hidden" : ""}`} ref={contentRef}>
           {selectedItem ? (
             <>
-              {/* Content header bar */}
-              <div className="flex items-center justify-between px-4 py-2 border-b border-[#eee] dark:border-[#1a1a1a] bg-white dark:bg-[#0a0a0a] shrink-0">
-                <div className="flex items-center gap-2">
-                  {getTypeIcon(selectedItem.type)}
-                  <h2 className="text-[13px] font-medium dark:text-white">{selectedItem.name}</h2>
+              {/* Enhanced Content header bar */}
+              <div className="flex items-center justify-between px-5 py-3 border-b border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white shadow-md">
+                    {getTypeIcon(selectedItem.type)}
+                  </div>
+                  <h2 className="text-[14px] font-medium text-gray-900 dark:text-white">{selectedItem.name}</h2>
                 </div>
-                <button onClick={() => handleDeleteContent(selectedItem.id)} disabled={deleting === selectedItem.id} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+                <button 
+                  onClick={() => handleDeleteContent(selectedItem.id)} 
+                  disabled={deleting === selectedItem.id} 
+                  className="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-all group"
+                >
+                  {deleting === selectedItem.id ? (
+                    <Loader2 size={16} className="animate-spin text-red-400" />
+                  ) : (
+                    <Trash2 size={16} className="text-red-400 group-hover:text-red-500" />
+                  )}
+                </button>
+              </div>
                   {deleting === selectedItem.id ? <Loader2 size={13} className="animate-spin text-red-400" /> : <Trash2 size={13} className="text-red-400" />}
                 </button>
               </div>
@@ -568,31 +621,40 @@ export default function SpaceDetailPage() {
           />
         )}
 
-        {/* ═══ AI LEARNING PANEL (right, resizable) ═══ */}
+        {/* ═══ ENHANCED AI LEARNING PANEL (right, resizable) ═══ */}
         <div
-          className={`bg-white dark:bg-[#0a0a0a] flex flex-col shrink-0 transition-[width] duration-100 ${aiPanelExpanded ? "flex-1" : ""}`}
+          className={`bg-white dark:bg-gray-900 flex flex-col shrink-0 transition-[width] duration-100 border-l border-gray-200 dark:border-gray-800 ${aiPanelExpanded ? "flex-1" : ""}`}
           style={aiPanelExpanded ? undefined : { width: aiPanelWidth }}
         >
-          {/* Panel header with tabs */}
-          <div className="border-b border-[#eee] dark:border-[#1a1a1a] px-4 py-2 flex items-center justify-between shrink-0">
-            <div className="flex items-center gap-1 bg-[#f0f0f0] dark:bg-[#141414] rounded-lg p-0.5">
+          {/* Enhanced Panel header with tabs */}
+          <div className="border-b border-gray-200 dark:border-gray-800 px-4 py-3 flex items-center justify-between shrink-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm">
+            <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-1 shadow-sm">
               <button
                 onClick={() => setAIPanelTab("learn")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-medium transition-all ${aiPanelTab === "learn" ? "bg-white dark:bg-[#222] text-black dark:text-white shadow-sm" : "text-[#888] hover:text-[#555] dark:hover:text-[#ccc]"
-                  }`}
+                className={`flex items-center gap-2 px-4 py-2 rounded-md text-[13px] font-medium transition-all ${
+                  aiPanelTab === "learn" 
+                    ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm" 
+                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                }`}
               >
-                <Sparkles size={12} /> Learn
+                <Sparkles size={14} /> Learn
               </button>
               <button
                 onClick={() => setAIPanelTab("chat")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-medium transition-all ${aiPanelTab === "chat" ? "bg-white dark:bg-[#222] text-black dark:text-white shadow-sm" : "text-[#888] hover:text-[#555] dark:hover:text-[#ccc]"
-                  }`}
+                className={`flex items-center gap-2 px-4 py-2 rounded-md text-[13px] font-medium transition-all ${
+                  aiPanelTab === "chat" 
+                    ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm" 
+                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                }`}
               >
-                <MessageSquare size={12} /> Chat
+                <MessageSquare size={14} /> Chat
               </button>
             </div>
-            <button onClick={() => setAIPanelExpanded(!aiPanelExpanded)} className="p-1.5 rounded-lg hover:bg-[#f0f0f0] dark:hover:bg-[#1a1a1a] transition-colors text-[#999]">
-              {aiPanelExpanded ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+            <button 
+              onClick={() => setAIPanelExpanded(!aiPanelExpanded)} 
+              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-all text-gray-600 dark:text-gray-400"
+            >
+              {aiPanelExpanded ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
             </button>
           </div>
 

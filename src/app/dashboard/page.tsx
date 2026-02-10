@@ -118,7 +118,7 @@ export default function DashboardPage() {
             <h1 className="text-[32px] font-bold tracking-tight bg-gradient-to-br from-gray-900 to-gray-600 dark:from-white dark:to-gray-400 bg-clip-text text-transparent">
               Welcome to YesLearn
             </h1>
-            <Sparkles className="w-6 h-6 text-yellow-500 animate-pulse" />
+            <Sparkles className="w-6 h-6 text-yellow-500 animate-pulse" aria-hidden="true" />
           </div>
           <p className="text-gray-600 dark:text-gray-400 text-[16px]">
             {spaces.length > 0
@@ -153,7 +153,13 @@ export default function DashboardPage() {
               <div className="relative flex items-center gap-5">
                 <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${stat.color} p-0.5 shadow-lg`}>
                   <div className="w-full h-full rounded-xl bg-white dark:bg-gray-900 flex items-center justify-center">
-                    <stat.icon size={24} className={`bg-gradient-to-br ${stat.color} bg-clip-text text-transparent`} />
+                    <stat.icon 
+                      size={24} 
+                      className={`bg-gradient-to-br ${stat.color} bg-clip-text text-transparent`}
+                      aria-hidden="true"
+                    />
+                    {/* Accessible fallback for screen readers */}
+                    <span className="sr-only">{stat.label} icon</span>
                   </div>
                 </div>
                 <div>

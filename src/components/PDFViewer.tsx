@@ -9,6 +9,11 @@ import { useInView } from "react-intersection-observer";
 // Configure PDF.js worker
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
+// Constants
+const VIEWPORT_BUFFER_PX = 400; // Load pages 400px before they come into view
+const A4_ASPECT_RATIO = 1.414; // Standard A4 page ratio
+const DEFAULT_MIN_HEIGHT = 600; // Fallback height when width is unknown
+
 interface PDFViewerProps {
     url: string;
     title?: string;
@@ -27,14 +32,14 @@ function VirtualPage({
     const { ref, inView } = useInView({
         threshold: 0,
         triggerOnce: false,
-        rootMargin: "400px 0px", // Load pages 400px before they come into view
+        rootMargin: `${VIEWPORT_BUFFER_PX}px 0px`,
     });
 
     return (
         <div
             ref={ref}
             className="shadow-md bg-white rounded-sm overflow-hidden transition-all duration-200 hover:shadow-lg"
-            style={{ minHeight: width ? width * 1.414 * scale : 600 }} // Approximate A4 ratio
+            style={{ minHeight: width ? width * A4_ASPECT_RATIO * scale : DEFAULT_MIN_HEIGHT }}
         >
             {inView ? (
                 <Page
@@ -209,10 +214,7 @@ export default function PDFViewer({ url, title }: PDFViewerProps) {
             {/* PDF Pages with Virtual Scrolling */}
             <div 
                 ref={containerRef} 
-                className="flex-1 overflow-auto scroll-smooth"
-                style={{
-                    background: 'linear-gradient(135deg, #f5f7fa 0%, #e8ebf0 100%)',
-                }}
+                className="flex-1 overflow-auto scroll-smooth bg-gradient-to-br from-[#f5f7fa] to-[#e8ebf0] dark:from-gray-950 dark:to-gray-900"
             >
                 {loading && (
                     <div className="flex flex-col items-center justify-center py-32 gap-3">

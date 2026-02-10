@@ -24,7 +24,7 @@ export default function Home() {
             Learn smarter, faster, easier.
           </h2>
           <p className="text-[#666666] text-lg mb-10 max-w-[500px]">
-            Join thousands of learners using YouLearn to study more effectively.
+            Join thousands of learners using YesLearn to study more effectively.
           </p>
           <Link
             href="/dashboard"

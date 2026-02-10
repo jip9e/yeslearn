@@ -17,7 +17,7 @@ const Navigation = () => {
             <div className="flex h-[28px] w-[28px] items-center justify-center rounded-lg bg-black">
               <span className="text-white font-bold text-[14px]">Y</span>
             </div>
-            <span className="text-[18px] font-semibold tracking-tight text-black">YouLearn</span>
+            <span className="text-[18px] font-semibold tracking-tight text-black">YesLearn</span>
           </Link>
 
           {/* Nav Links - Desktop */}

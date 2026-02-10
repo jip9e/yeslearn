@@ -2,7 +2,7 @@ import React from 'react';
 
 const testimonials = [
   {
-    quote: "YouLearn transformed how I study. I upload my lecture PDFs and get instant summaries and quizzes — it saves me hours every week.",
+    quote: "YesLearn transformed how I study. I upload my lecture PDFs and get instant summaries and quizzes — it saves me hours every week.",
     name: "Alex Johnson",
     title: "Computer Science Student",
     initials: "AJ",

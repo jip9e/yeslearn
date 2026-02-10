@@ -21,7 +21,7 @@ const FeaturesGrid = () => {
             className="font-body text-[#666666] leading-[1.6]"
             style={{ fontSize: '18px' }}
           >
-            Upload your content, and YouLearn handles the rest — from summaries to quizzes to AI chat.
+            Upload your content, and YesLearn handles the rest — from summaries to quizzes to AI chat.
           </p>
         </div>
 
@@ -65,7 +65,7 @@ const FeaturesGrid = () => {
                 }}
               >
                 <Image
-                  src="https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/test-clones/aaae90b8-aa3f-4374-8832-83abe3b64372-youlearn-ai/assets/images/AsHprVUhsmXzQ1wA68OiD1wow9o-3.png"
+                  src="https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/test-clones/aaae90b8-aa3f-4374-8832-83abe3b64372-yeslearn-ai/assets/images/AsHprVUhsmXzQ1wA68OiD1wow9o-3.png"
                   alt="AI tutor interface showing summary, key dilemmas, and video integration"
                   width={1908}
                   height={1570}

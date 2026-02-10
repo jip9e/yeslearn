@@ -1,6 +1,6 @@
-# YouLearn — AI-Powered Learning Platform
+# YesLearn — AI-Powered Learning Platform
 
-YouLearn is an AI-powered study platform that transforms your learning materials into interactive study tools. Upload PDFs, YouTube videos, websites, or audio recordings, and YouLearn will generate summaries, quizzes, and an AI chat tutor — all grounded in your content.
+YesLearn is an AI-powered study platform that transforms your learning materials into interactive study tools. Upload PDFs, YouTube videos, websites, or audio recordings, and YesLearn will generate summaries, quizzes, and an AI chat tutor — all grounded in your content.
 
 ## Features
 
@@ -53,8 +53,8 @@ Full dark mode support for comfortable studying at any hour.
 
 ```bash
 # Clone the repository
-git clone https://github.com/jip9e/orchids-youlearn-ai.git
-cd orchids-youlearn-ai
+git clone https://github.com/jip9e/orchids-yeslearn-ai.git
+cd orchids-yeslearn-ai
 
 # Install dependencies
 npm install --legacy-peer-deps
@@ -67,7 +67,7 @@ Open [http://localhost:3000](http://localhost:3000) to see the app.
 
 ### Environment Setup
 
-YouLearn stores data locally using SQLite. The database file is created automatically at `~/.YouLearn/youlearn.db` (or `%APPDATA%/.YouLearn/` on Windows).
+YesLearn stores data locally using SQLite. The database file is created automatically at `~/.YesLearn/yeslearn.db` (or `%APPDATA%/.YesLearn/` on Windows).
 
 To configure AI providers, visit the **Settings** page in the app (`/settings`) and connect your preferred AI provider.
 

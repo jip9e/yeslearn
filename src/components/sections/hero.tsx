@@ -72,7 +72,7 @@ const HeroSection = () => {
                   <div className="flex h-6 w-6 items-center justify-center rounded-md bg-black">
                     <span className="text-white font-bold text-[10px]">Y</span>
                   </div>
-                  <span className="text-sm font-semibold">YouLearn</span>
+                  <span className="text-sm font-semibold">YesLearn</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="h-7 w-20 rounded-full bg-[#f1f1f1] flex items-center justify-center">

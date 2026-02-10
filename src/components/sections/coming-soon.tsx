@@ -35,7 +35,7 @@ export default function ComingSoon() {
             className="font-display text-foreground leading-[1.2] tracking-[-0.01em] mb-[16px]"
             style={{ fontSize: '40px', fontWeight: 600 }}
           >
-            What&apos;s next for YouLearn
+            What&apos;s next for YesLearn
           </h2>
           <p className="text-[#666666] text-lg max-w-[500px] mx-auto">
             We&apos;re building new features to make your learning experience even better.

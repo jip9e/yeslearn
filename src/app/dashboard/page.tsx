@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { motion } from "framer-motion";
 import {
   Plus,
   Youtube,
@@ -11,6 +12,7 @@ import {
   BookOpen,
   BarChart3,
   Zap,
+  Sparkles,
 } from "lucide-react";
 
 interface Space {
@@ -81,12 +83,20 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="p-8 max-w-[1100px] mx-auto">
-        <div className="animate-pulse space-y-6">
-          <div className="h-8 bg-[#f0f0f0] dark:bg-[#1a1a1a] rounded w-64" />
-          <div className="grid grid-cols-3 gap-4">
+      <div className="p-8 max-w-[1200px] mx-auto">
+        <div className="space-y-8">
+          <div className="space-y-3">
+            <div className="h-10 bg-gradient-to-r from-gray-200 to-gray-100 dark:from-gray-800 dark:to-gray-900 rounded-lg w-80 animate-pulse" />
+            <div className="h-5 bg-gradient-to-r from-gray-200 to-gray-100 dark:from-gray-800 dark:to-gray-900 rounded w-96 animate-pulse" />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="h-24 bg-[#f0f0f0] dark:bg-[#1a1a1a] rounded-xl" />
+              <div key={i} className="h-32 bg-gradient-to-br from-gray-100 to-gray-50 dark:from-gray-900 dark:to-gray-800 rounded-2xl animate-pulse" />
+            ))}
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-28 bg-gradient-to-br from-gray-100 to-gray-50 dark:from-gray-900 dark:to-gray-800 rounded-xl animate-pulse" />
             ))}
           </div>
         </div>
@@ -95,137 +105,237 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="p-8 max-w-[1100px] mx-auto">
-      {/* Welcome */}
-      <div className="mb-8">
-        <h1 className="text-[28px] font-bold tracking-tight mb-1 dark:text-white">
-          Welcome to YesLearn
-        </h1>
-        <p className="text-[#888] dark:text-[#666] text-[15px]">
-          {spaces.length > 0
-            ? "Continue learning or add new content to your spaces."
-            : "Get started by creating your first learning space."}
-        </p>
-      </div>
-
-      {/* Stats — monochrome */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-        {[
-          { icon: BookOpen, value: stats?.spaceCount || 0, label: "Active Spaces" },
-          { icon: BarChart3, value: stats?.itemCount || 0, label: "Total Items" },
-          { icon: Zap, value: stats?.quizCount || 0, label: "Quizzes Completed" },
-        ].map((stat) => (
-          <div
-            key={stat.label}
-            className="bg-white dark:bg-[#111] rounded-xl border border-[#eee] dark:border-[#1a1a1a] p-5 flex items-center gap-4 hover:border-[#ccc] dark:hover:border-[#333] transition-colors"
-          >
-            <div className="w-10 h-10 rounded-lg bg-[#f5f5f5] dark:bg-[#1a1a1a] flex items-center justify-center">
-              <stat.icon size={18} className="text-[#666] dark:text-[#888]" />
-            </div>
-            <div>
-              <p className="text-[24px] font-bold dark:text-white">{stat.value}</p>
-              <p className="text-[12px] text-[#999] dark:text-[#666]">{stat.label}</p>
-            </div>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950">
+      <div className="p-8 max-w-[1200px] mx-auto space-y-10">
+        {/* Welcome Header with Animation */}
+        <motion.div 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="space-y-2"
+        >
+          <div className="flex items-center gap-3">
+            <h1 className="text-[32px] font-bold tracking-tight bg-gradient-to-br from-gray-900 to-gray-600 dark:from-white dark:to-gray-400 bg-clip-text text-transparent">
+              Welcome to YesLearn
+            </h1>
+            <Sparkles className="w-6 h-6 text-yellow-500 animate-pulse" />
           </div>
-        ))}
-      </div>
+          <p className="text-gray-600 dark:text-gray-400 text-[16px]">
+            {spaces.length > 0
+              ? "Continue your learning journey or add new content to your spaces."
+              : "Get started by creating your first learning space."}
+          </p>
+        </motion.div>
 
-      {/* Quick Add — monochrome */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-[16px] font-semibold dark:text-white">Quick Add Content</h2>
-          <Link href="/dashboard/add" className="text-[13px] text-[#999] hover:text-black dark:hover:text-white flex items-center gap-1 transition-colors">
-            All types <ArrowRight size={12} />
-          </Link>
-        </div>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {QUICK_ACTIONS.map((action) => (
-            <Link
-              key={action.label}
-              href={action.href}
-              className="bg-white dark:bg-[#111] rounded-xl border border-[#eee] dark:border-[#1a1a1a] p-4 flex flex-col items-center gap-3 hover:border-[#ccc] dark:hover:border-[#333] hover:shadow-sm transition-all group"
+        {/* Stats Grid with Stagger Animation */}
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+          className="grid grid-cols-1 sm:grid-cols-3 gap-6"
+        >
+          {[
+            { icon: BookOpen, value: stats?.spaceCount || 0, label: "Active Spaces", color: "from-blue-500 to-cyan-500" },
+            { icon: BarChart3, value: stats?.itemCount || 0, label: "Total Items", color: "from-purple-500 to-pink-500" },
+            { icon: Zap, value: stats?.quizCount || 0, label: "Quizzes Completed", color: "from-orange-500 to-red-500" },
+          ].map((stat, index) => (
+            <motion.div
+              key={stat.label}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.1 + index * 0.1 }}
+              whileHover={{ scale: 1.02, y: -4 }}
+              className="group relative bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6 shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden"
             >
-              <div className="w-10 h-10 rounded-lg bg-[#f5f5f5] dark:bg-[#1a1a1a] flex items-center justify-center group-hover:scale-110 transition-transform">
-                <action.icon size={18} className="text-[#555] dark:text-[#888]" />
-              </div>
-              <span className="text-[13px] font-medium text-[#666] dark:text-[#888] group-hover:text-black dark:group-hover:text-white transition-colors">
-                {action.label}
-              </span>
-            </Link>
-          ))}
-        </div>
-      </div>
-
-      {/* Spaces — monochrome */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-[16px] font-semibold dark:text-white">My Spaces</h2>
-          <Link href="/space/new" className="text-[13px] text-black dark:text-white font-medium flex items-center gap-1.5 hover:opacity-70">
-            <Plus size={14} /> New Space
-          </Link>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {spaces.map((space) => (
-            <Link
-              key={space.id}
-              href={`/space/${space.id}`}
-              className="bg-white dark:bg-[#111] rounded-xl border border-[#eee] dark:border-[#1a1a1a] p-5 hover:border-[#ccc] dark:hover:border-[#333] hover:shadow-sm transition-all group"
-            >
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-8 h-8 rounded-lg bg-[#f0f0f0] dark:bg-[#1a1a1a] flex items-center justify-center text-[13px] font-semibold text-[#555] dark:text-[#888]">
-                  {space.name.charAt(0).toUpperCase()}
+              {/* Gradient background on hover */}
+              <div className={`absolute inset-0 bg-gradient-to-br ${stat.color} opacity-0 group-hover:opacity-5 transition-opacity duration-300`} />
+              
+              <div className="relative flex items-center gap-5">
+                <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${stat.color} p-0.5 shadow-lg`}>
+                  <div className="w-full h-full rounded-xl bg-white dark:bg-gray-900 flex items-center justify-center">
+                    <stat.icon size={24} className={`bg-gradient-to-br ${stat.color} bg-clip-text text-transparent`} />
+                  </div>
                 </div>
-                <h3 className="text-[15px] font-semibold dark:text-white group-hover:text-black dark:group-hover:text-white">
-                  {space.name}
-                </h3>
+                <div>
+                  <p className="text-[28px] font-bold text-gray-900 dark:text-white mb-0.5">
+                    {stat.value}
+                  </p>
+                  <p className="text-[13px] text-gray-500 dark:text-gray-400 font-medium">
+                    {stat.label}
+                  </p>
+                </div>
               </div>
-              <div className="flex items-center justify-between text-[12px] text-[#999] dark:text-[#555]">
-                <span>{space.itemCount} items</span>
-                <span>{timeAgo(space.updatedAt)}</span>
-              </div>
-            </Link>
+            </motion.div>
           ))}
-          <Link
-            href="/space/new"
-            className="bg-white dark:bg-[#111] rounded-xl border-2 border-dashed border-[#e0e0e0] dark:border-[#222] p-5 flex flex-col items-center justify-center gap-2 hover:border-[#bbb] dark:hover:border-[#444] transition-all min-h-[120px]"
-          >
-            <Plus size={24} className="text-[#ccc] dark:text-[#444]" />
-            <span className="text-[13px] text-[#999] dark:text-[#555]">Create New Space</span>
-          </Link>
-        </div>
-      </div>
+        </motion.div>
 
-      {/* Recent Activity — monochrome */}
-      {stats && stats.recentActivity.length > 0 && (
-        <div>
-          <h2 className="text-[16px] font-semibold mb-4 dark:text-white">Recent Activity</h2>
-          <div className="bg-white dark:bg-[#111] rounded-xl border border-[#eee] dark:border-[#1a1a1a] overflow-hidden">
-            {stats.recentActivity.map((item, i) => {
-              const IconComponent = TYPE_ICONS[item.type] || FileText;
-              return (
+        {/* Quick Add Content with Better Spacing */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5, delay: 0.3 }}
+          className="space-y-5"
+        >
+          <div className="flex items-center justify-between">
+            <h2 className="text-[20px] font-semibold text-gray-900 dark:text-white">Quick Add Content</h2>
+            <Link 
+              href="/dashboard/add" 
+              className="flex items-center gap-1.5 text-[14px] text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors group"
+            >
+              All types 
+              <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+            </Link>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {QUICK_ACTIONS.map((action, index) => (
+              <motion.div
+                key={action.label}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.3, delay: 0.3 + index * 0.05 }}
+                whileHover={{ scale: 1.05, y: -4 }}
+                whileTap={{ scale: 0.98 }}
+              >
                 <Link
-                  key={item.id}
-                  href={`/space/${item.spaceId}`}
-                  className={`flex items-center gap-4 px-5 py-4 hover:bg-[#fafafa] dark:hover:bg-[#141414] transition-colors ${i < stats.recentActivity.length - 1 ? "border-b border-[#f0f0f0] dark:border-[#1a1a1a]" : ""
-                    }`}
+                  href={action.href}
+                  className="group block bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-5 hover:border-gray-300 dark:hover:border-gray-700 hover:shadow-lg transition-all duration-300"
                 >
-                  <div className="w-9 h-9 rounded-lg bg-[#f5f5f5] dark:bg-[#1a1a1a] flex items-center justify-center shrink-0">
-                    <IconComponent size={16} className="text-[#666] dark:text-[#888]" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[14px] font-medium truncate dark:text-white">{item.name}</p>
-                    <p className="text-[12px] text-[#999] dark:text-[#666]">{item.spaceName}</p>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <span className="text-[11px] px-2 py-1 rounded-full bg-[#f5f5f5] dark:bg-[#1a1a1a] text-[#666] dark:text-[#888]">{item.type}</span>
-                    <p className="text-[11px] text-[#bbb] dark:text-[#444] mt-1">{timeAgo(item.createdAt)}</p>
+                  <div className="flex flex-col items-center gap-4">
+                    <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-gray-100 to-gray-50 dark:from-gray-800 dark:to-gray-900 flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-sm">
+                      <action.icon size={24} className="text-gray-700 dark:text-gray-300" />
+                    </div>
+                    <span className="text-[14px] font-medium text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white transition-colors text-center">
+                      {action.label}
+                    </span>
                   </div>
                 </Link>
-              );
-            })}
+              </motion.div>
+            ))}
           </div>
-        </div>
-      )}
+        </motion.div>
+
+        {/* My Spaces with Better Organization */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5, delay: 0.4 }}
+          className="space-y-5"
+        >
+          <div className="flex items-center justify-between">
+            <h2 className="text-[20px] font-semibold text-gray-900 dark:text-white">My Spaces</h2>
+            <Link 
+              href="/space/new" 
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-medium text-[14px] hover:opacity-90 transition-all shadow-sm hover:shadow-md"
+            >
+              <Plus size={16} /> New Space
+            </Link>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {spaces.map((space, index) => (
+              <motion.div
+                key={space.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.4 + index * 0.05 }}
+                whileHover={{ scale: 1.02, y: -4 }}
+              >
+                <Link
+                  href={`/space/${space.id}`}
+                  className="group block bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6 hover:border-gray-300 dark:hover:border-gray-700 hover:shadow-xl transition-all duration-300"
+                >
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-[18px] font-bold shadow-lg">
+                      {space.name.charAt(0).toUpperCase()}
+                    </div>
+                    <h3 className="text-[17px] font-semibold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors flex-1 truncate">
+                      {space.name}
+                    </h3>
+                  </div>
+                  <div className="flex items-center justify-between pt-3 border-t border-gray-100 dark:border-gray-800">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-green-500" />
+                      <span className="text-[13px] text-gray-600 dark:text-gray-400">
+                        {space.itemCount} item{space.itemCount !== 1 ? 's' : ''}
+                      </span>
+                    </div>
+                    <span className="text-[12px] text-gray-400 dark:text-gray-500">
+                      {timeAgo(space.updatedAt)}
+                    </span>
+                  </div>
+                </Link>
+              </motion.div>
+            ))}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.4, delay: 0.4 + spaces.length * 0.05 }}
+              whileHover={{ scale: 1.02, y: -4 }}
+            >
+              <Link
+                href="/space/new"
+                className="flex flex-col items-center justify-center gap-3 bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-gray-800 rounded-2xl border-2 border-dashed border-gray-300 dark:border-gray-700 p-8 hover:border-gray-400 dark:hover:border-gray-600 hover:shadow-lg transition-all duration-300 min-h-[160px] group"
+              >
+                <div className="w-12 h-12 rounded-full bg-gray-200 dark:bg-gray-800 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Plus size={24} className="text-gray-400 dark:text-gray-600" />
+                </div>
+                <span className="text-[14px] font-medium text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-300 transition-colors">
+                  Create New Space
+                </span>
+              </Link>
+            </motion.div>
+          </div>
+        </motion.div>
+
+        {/* Recent Activity with Modern Design */}
+        {stats && stats.recentActivity.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5, delay: 0.5 }}
+            className="space-y-5"
+          >
+            <h2 className="text-[20px] font-semibold text-gray-900 dark:text-white">Recent Activity</h2>
+            <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 overflow-hidden shadow-sm">
+              {stats.recentActivity.map((item, i) => {
+                const IconComponent = TYPE_ICONS[item.type] || FileText;
+                return (
+                  <motion.div
+                    key={item.id}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.3, delay: 0.5 + i * 0.05 }}
+                  >
+                    <Link
+                      href={`/space/${item.spaceId}`}
+                      className={`flex items-center gap-5 px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-all duration-200 group ${
+                        i < stats.recentActivity.length - 1 ? "border-b border-gray-100 dark:border-gray-800" : ""
+                      }`}
+                    >
+                      <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-gray-100 to-gray-50 dark:from-gray-800 dark:to-gray-900 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform shadow-sm">
+                        <IconComponent size={20} className="text-gray-600 dark:text-gray-400" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[15px] font-medium truncate text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                          {item.name}
+                        </p>
+                        <p className="text-[13px] text-gray-500 dark:text-gray-400 mt-0.5">{item.spaceName}</p>
+                      </div>
+                      <div className="flex items-center gap-3 shrink-0">
+                        <span className="text-[12px] px-3 py-1.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 font-medium">
+                          {item.type}
+                        </span>
+                        <span className="text-[12px] text-gray-400 dark:text-gray-500 w-20 text-right">
+                          {timeAgo(item.createdAt)}
+                        </span>
+                      </div>
+                    </Link>
+                  </motion.div>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
+      </div>
     </div>
   );
 }

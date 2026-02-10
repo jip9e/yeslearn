@@ -2,24 +2,24 @@ import React from 'react';
 
 const testimonials = [
   {
-    quote: "YesLearn is awesome, just used it to learn from a biotech roundtable discussion!",
-    name: "Rohan Robinson",
-    title: "Software Engineer",
-    initials: "RR",
+    quote: "YesLearn transformed how I study. I upload my lecture PDFs and get instant summaries and quizzes — it saves me hours every week.",
+    name: "Alex Johnson",
+    title: "Computer Science Student",
+    initials: "AJ",
     color: "bg-blue-500",
   },
   {
-    quote: "This YesLearn site, with features like 'Chat with PDF,' has become an integral part of our daily workflow. It's streamlined our process of understanding videos and PDFs.",
-    name: "Jason Patel",
-    title: "Writer",
-    initials: "JP",
+    quote: "The AI chat feature is incredible. I can ask questions about my uploaded materials and get accurate, referenced answers instantly.",
+    name: "Maria Kim",
+    title: "Biology Researcher",
+    initials: "MK",
     color: "bg-green-500",
   },
   {
-    quote: "I use YesLearn on a daily basis now. It's streamlined my processes and improved how I learn materials.",
-    name: "Kate Doe",
-    title: "Content Manager",
-    initials: "KD",
+    quote: "Being able to upload YouTube videos and get auto-generated notes and quizzes has completely changed my learning workflow.",
+    name: "Sam Rivera",
+    title: "Graduate Student",
+    initials: "SR",
     color: "bg-purple-500",
   }
 ];

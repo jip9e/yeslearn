@@ -4,24 +4,24 @@ const HeroSection = () => {
   return (
     <section className="relative w-full overflow-hidden bg-white pt-[120px] pb-[80px]" id="home">
       <div className="container flex flex-col items-center text-center">
-        {/* YC Badge */}
+        {/* Badge */}
         <div className="mb-8 flex items-center gap-2 rounded-full border border-[#E5E5E5] bg-white px-4 py-2 shadow-sm transition-all hover:bg-gray-50">
-          <div className="flex h-6 w-6 items-center justify-center overflow-hidden rounded-[4px] bg-[#FF6600]">
+          <div className="flex h-6 w-6 items-center justify-center overflow-hidden rounded-[4px] bg-black">
             <span className="text-white font-bold text-[12px]">Y</span>
           </div>
           <span className="text-sm font-medium tracking-tight text-[#000000]">
-            Backed by Y Combinator
+            AI-Powered Learning Platform
           </span>
         </div>
 
         {/* Main Heading */}
         <h1 className="mb-6 max-w-[800px] text-[48px] leading-[1.1] font-bold tracking-[-0.03em] text-[#000000] md:text-[64px]">
-          An AI tutor made for you
+          Your personal AI tutor
         </h1>
 
         {/* Subtext */}
         <p className="mb-10 max-w-[600px] text-lg leading-[1.6] text-[#666666] md:text-[20px]">
-          Turns your learning materials into notes, interactive chats, quizzes, and more
+          Upload any learning material — PDFs, YouTube videos, websites, or audio — and get AI-generated summaries, interactive chat, and quizzes instantly.
         </p>
 
         {/* CTA Buttons */}
@@ -57,7 +57,7 @@ const HeroSection = () => {
             ))}
           </div>
           <p className="text-[16px] font-medium text-[#666666]">
-            Loved by 2,000,000+ learners
+            Loved by learners everywhere
           </p>
         </div>
 
@@ -97,7 +97,7 @@ const HeroSection = () => {
                   </div>
                   <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-[#f8f8f8]">
                     <div className="w-3.5 h-3.5 rounded bg-black/10" />
-                    <span className="text-[11px] text-[#666]">Recent</span>
+                    <span className="text-[11px] text-[#666]">Settings</span>
                   </div>
                   <div className="mt-4 border-t border-[#e5e5e5] pt-4">
                     <span className="text-[10px] font-semibold text-[#999] uppercase tracking-wider">Spaces</span>

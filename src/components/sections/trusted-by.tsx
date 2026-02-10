@@ -63,7 +63,7 @@ const TrustedBySection: React.FC = () => {
       <div className="container mx-auto px-6">
         <div className="w-full text-center mb-10 md:mb-14">
           <p className="text-[#666666] text-lg font-medium leading-[1.6] tracking-tight">
-            Trusted by top students all over the world
+            Built for students and learners everywhere
           </p>
         </div>
 

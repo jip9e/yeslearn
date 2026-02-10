@@ -551,9 +551,6 @@ export default function SpaceDetailPage() {
                   )}
                 </button>
               </div>
-                  {deleting === selectedItem.id ? <Loader2 size={13} className="animate-spin text-red-400" /> : <Trash2 size={13} className="text-red-400" />}
-                </button>
-              </div>
 
               {/* PDF Viewer — custom react-pdf renderer with text selection */}
               {selectedItem.type === "pdf" && (

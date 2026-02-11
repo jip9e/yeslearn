@@ -1,19 +1,17 @@
 "use client";
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useParams } from "next/navigation";
-import { Loader2, Command as CommandIcon } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { Loader2, Command as CommandIcon, PanelRightClose, PanelRightOpen, Library, X } from "lucide-react";
 
-import { SpaceData, ChatMessage, ChatSession, AIPanelTab } from "./types";
+import { SpaceData, ChatMessage, ChatSession } from "./types";
 import { SelectionToolbar } from "./components/SelectionToolbar";
 import { SourceViewer } from "./components/SourceViewer";
-import { AIPanel } from "./components/AIPanel";
 import { ChatSection } from "./components/ChatSection";
 import { CommandCenter } from "./components/CommandCenter";
 import { ContentRail } from "./components/ContentRail";
 import { ExplainPanel } from "./components/ExplainPanel";
 import { PracticePanel } from "./components/PracticePanel";
-import { StudyStack } from "./components/StudyStack";
+import { LearnPanel } from "./components/LearnPanel";
 
 export default function SpaceDetailPage() {
   const params = useParams();
@@ -38,22 +36,22 @@ export default function SpaceDetailPage() {
   const [quizCount] = useState(5);
   const [focusTab, setFocusTab] = useState<FocusTab>("content");
 
-  const [aiPanelOpen, setAIPanelOpen] = useState(true);
-  const [aiPanelTab, setAIPanelTab] = useState<AIPanelTab>("chat");
+  const [rightPanelTab, setRightPanelTab] = useState<"learn" | "chat">("learn");
   const [selectionToolbar, setSelectionToolbar] = useState<{ x: number; y: number; text: string } | null>(null);
   const [quotedText, setQuotedText] = useState<string | null>(null);
   const [learnPanelError, setLearnPanelError] = useState<string | null>(null);
   const [isCommandCenterOpen, setIsCommandCenterOpen] = useState(false);
+  const [rightPanelOpen, setRightPanelOpen] = useState(true);
 
   // Chat sessions
   const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const [followUps, setFollowUps] = useState<string[]>([]);
 
-  // AIPanel Width
-  const [aiPanelWidth, setAiPanelWidth] = useState(420);
+  // Content rail toggle
+  const [railOpen, setRailOpen] = useState(true);
 
-  // Responsive: detect phone screens
+  // Responsive
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
@@ -114,8 +112,8 @@ export default function SpaceDetailPage() {
     setQuotedText(null);
     setSendingChat(true);
     setFollowUps([]);
-    setAIPanelTab("chat");
-    setAIPanelOpen(true);
+    setRightPanelTab("chat");
+    setRightPanelOpen(true);
 
     let sessionId = activeChatId;
     if (!sessionId) {
@@ -158,7 +156,7 @@ export default function SpaceDetailPage() {
   };
 
   const handleSelectionAction = (action: string, text: string) => {
-    setAIPanelOpen(true);
+    setRightPanelOpen(true);
     setQuotedText(text);
     setFollowUps([]);
 
@@ -174,7 +172,7 @@ export default function SpaceDetailPage() {
     setChatSessions(prev => [...prev, newSession]);
     setActiveChatId(sessionId);
     setMessages([]);
-    setAIPanelTab("chat");
+    setRightPanelTab("chat");
 
     if (action === "explain") handleSendMessage("Explain this concept in detail:");
     else if (action === "summarize") handleSendMessage("Summarize this in simple terms:");
@@ -182,11 +180,11 @@ export default function SpaceDetailPage() {
   };
 
   const openChatSession = useCallback((session: ChatSession) => {
-    setAIPanelTab("chat");
+    setRightPanelTab("chat");
     setActiveChatId(session.id);
     setMessages(session.messages);
     setFollowUps(session.messages.length > 0 ? (session.messages[session.messages.length - 1].followUpQuestions || []) : []);
-    setAIPanelOpen(true);
+    setRightPanelOpen(true);
   }, []);
 
   const createNewChat = () => {
@@ -196,8 +194,8 @@ export default function SpaceDetailPage() {
     setActiveChatId(sessionId);
     setMessages([]);
     setFollowUps([]);
-    setAIPanelTab("chat");
-    setAIPanelOpen(true);
+    setRightPanelTab("chat");
+    setRightPanelOpen(true);
   };
 
   const handleGenerateSummary = async () => {
@@ -240,18 +238,20 @@ export default function SpaceDetailPage() {
   };
 
   if (loading) {
-    return <div className="h-screen flex items-center justify-center bg-black text-zinc-500"><Loader2 size={24} className="animate-spin" /></div>;
+    return (
+      <div className="h-screen flex items-center justify-center bg-background text-muted-foreground">
+        <Loader2 size={24} className="animate-spin" />
+      </div>
+    );
   }
 
   if (!space) return null;
 
   const selectedItem = space.contentItems.find((c) => c.id === selectedContent) || null;
-  const summariesReady = Boolean(space.summaries && space.summaries.length > 0);
-  const quizReady = Boolean(space.quizQuestions && space.quizQuestions.length > 0);
 
   return (
-    <div className="flex h-screen w-screen bg-zinc-950 text-zinc-100">
-      <CommandCenter 
+    <div className="flex flex-col h-full w-full bg-background text-foreground">
+      <CommandCenter
         isOpen={isCommandCenterOpen}
         setIsOpen={setIsCommandCenterOpen}
         sources={space.contentItems}
@@ -261,10 +261,11 @@ export default function SpaceDetailPage() {
         }}
         onAction={(action) => {
           if (action === "chat") {
-            setAIPanelTab("chat");
-            setAIPanelOpen(true);
+            setRightPanelTab("chat");
+            setRightPanelOpen(true);
           } else if (action === "learn") {
-            setFocusTab("explain");
+            setRightPanelTab("learn");
+            setRightPanelOpen(true);
           }
         }}
       />
@@ -278,35 +279,20 @@ export default function SpaceDetailPage() {
         />
       )}
 
-      <div className="flex flex-1 flex-col">
-        <header className="flex items-center justify-between border-b border-zinc-900 px-8 py-3 text-[12px] uppercase tracking-[0.35em] text-zinc-500">
-          <div className="flex items-center gap-3 text-zinc-400">
-            <span>{space.name}</span>
-            {selectedItem && (
-              <span className="text-zinc-600">/</span>
-            )}
-            {selectedItem && <span className="text-zinc-200 truncate max-w-[320px] normal-case tracking-normal font-medium">{selectedItem.name}</span>}
-          </div>
-          <div className="flex items-center gap-3">
+      {/* Content Rail Drawer Overlay */}
+      {railOpen && (
+        <div className="fixed inset-0 z-40 flex">
+          <div className="fixed inset-0 bg-black/40" onClick={() => setRailOpen(false)} />
+          <aside
+            className="relative z-50 w-[300px] max-w-[85vw] h-full bg-card border-r border-border shadow-2xl animate-in slide-in-from-left duration-200"
+          >
             <button
-              onClick={() => setIsCommandCenterOpen(true)}
-              className="flex items-center gap-2 border border-zinc-800 px-4 py-2 text-[11px] font-semibold tracking-[0.3em] text-zinc-200"
+              onClick={() => setRailOpen(false)}
+              className="absolute top-3 right-3 p-1 text-muted-foreground hover:text-foreground z-10"
+              aria-label="Close library"
             >
-              <CommandIcon size={14} />
-              Search
-              <span className="text-[10px] text-zinc-500">⌘K</span>
+              <X size={16} />
             </button>
-            <button
-              onClick={() => setAIPanelOpen(true)}
-              className="border border-zinc-800 px-4 py-2 text-[11px] font-semibold tracking-[0.3em] text-zinc-200"
-            >
-              Assistant
-            </button>
-          </div>
-        </header>
-
-        <div className="grid flex-1 grid-cols-[260px_minmax(0,1fr)_320px]">
-          <aside className="border-r border-zinc-900">
             <ContentRail
               space={space}
               selectedContent={selectedContent}
@@ -315,98 +301,201 @@ export default function SpaceDetailPage() {
               onSelectItem={(id) => {
                 setSelectedContent(id);
                 setFocusTab("content");
+                setRailOpen(false);
               }}
             />
           </aside>
+        </div>
+      )}
 
-          <section className="flex flex-col border-r border-zinc-900" ref={contentRef}>
-            <div className="flex items-center border-b border-zinc-900 text-[11px] uppercase tracking-[0.3em] text-zinc-500">
-              {["content", "explain", "practice"].map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setFocusTab(tab as FocusTab)}
-                  className={`px-5 py-3 ${focusTab === tab ? "text-zinc-100 border-b border-zinc-100" : "text-zinc-600"}`}
-                >
-                  {tab.toUpperCase()}
-                </button>
-              ))}
+      {/* Header bar */}
+      <header className="flex items-center justify-between border-b border-border px-4 py-2 bg-background shrink-0">
+        <div className="flex items-center gap-3 min-w-0">
+          <button
+            onClick={() => setRailOpen(!railOpen)}
+            className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground"
+            aria-label="Open library"
+          >
+            <Library size={16} />
+          </button>
+          <span className="text-[13px] font-medium text-muted-foreground truncate">{space.name}</span>
+          {selectedItem && <span className="text-muted-foreground/40">/</span>}
+          {selectedItem && (
+            <span className="text-[13px] font-semibold text-foreground truncate max-w-[280px]">
+              {selectedItem.name}
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => setIsCommandCenterOpen(true)}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border text-[12px] font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+          >
+            <CommandIcon size={12} />
+            Search
+            <kbd className="text-[10px] text-muted-foreground/60 ml-1">⌘K</kbd>
+          </button>
+          <button
+            onClick={() => setRightPanelOpen(!rightPanelOpen)}
+            className={`p-1.5 rounded-lg border border-border text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors ${rightPanelOpen ? "bg-secondary" : ""}`}
+            aria-label={rightPanelOpen ? "Hide panel" : "Show panel"}
+          >
+            {rightPanelOpen ? <PanelRightClose size={16} /> : <PanelRightOpen size={16} />}
+          </button>
+        </div>
+      </header>
+
+      {/* Content + Right panel */}
+      <div className="flex flex-1 min-h-0 overflow-hidden">
+        {/* Center: Main content area */}
+        <section className="flex flex-1 flex-col min-w-0" ref={contentRef}>
+          {/* Tabs */}
+          <div className="flex items-center border-b border-border bg-background px-1">
+            {(["content", "explain", "practice"] as const).map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setFocusTab(tab)}
+                className={`px-4 py-2.5 text-[12px] font-medium capitalize transition-colors relative ${
+                  focusTab === tab
+                    ? "text-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {tab}
+                {focusTab === tab && (
+                  <span className="absolute bottom-0 left-2 right-2 h-0.5 bg-foreground rounded-full" />
+                )}
+              </button>
+            ))}
+          </div>
+
+          {/* Tab content */}
+          <div className="flex-1 overflow-hidden">
+            {focusTab === "content" && (
+              selectedItem ? (
+                <SourceViewer item={selectedItem} />
+              ) : (
+                <div className="flex h-full items-center justify-center text-[13px] text-muted-foreground">
+                  <button
+                    onClick={() => setRailOpen(true)}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border hover:bg-secondary transition-colors text-[13px]"
+                  >
+                    <Library size={14} />
+                    Open Library
+                  </button>
+                </div>
+              )
+            )}
+            {focusTab === "explain" && (
+              <ExplainPanel
+                space={space}
+                generatingSummary={generatingSummary}
+                handleGenerateSummary={handleGenerateSummary}
+                learnPanelError={learnPanelError}
+              />
+            )}
+            {focusTab === "practice" && (
+              <PracticePanel
+                space={space}
+                quizAnswers={quizAnswers}
+                setQuizAnswers={setQuizAnswers}
+                quizSubmitted={quizSubmitted}
+                setQuizSubmitted={setQuizSubmitted}
+                generatingQuiz={generatingQuiz}
+                handleGenerateQuiz={handleGenerateQuiz}
+              />
+            )}
+          </div>
+        </section>
+
+        {/* Right panel - slides in/out */}
+        <aside
+          className={`border-l border-border bg-card flex flex-col shrink-0 transition-all duration-300 ease-out overflow-hidden ${
+            isMobile
+              ? rightPanelOpen
+                ? "fixed inset-0 z-50 w-full"
+                : "fixed right-0 inset-y-0 z-50 w-0"
+              : rightPanelOpen
+                ? "w-[400px]"
+                : "w-0"
+          }`}
+        >
+          <div className="flex flex-col h-full min-w-[400px] max-md:min-w-full">
+            {/* Panel tab bar */}
+            <div className="flex items-center border-b border-border shrink-0">
+              <button
+                onClick={() => setRightPanelTab("learn")}
+                className={`flex-1 px-4 py-3 text-[13px] font-medium text-center transition-colors relative ${
+                  rightPanelTab === "learn" ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Learn
+                {rightPanelTab === "learn" && (
+                  <span className="absolute bottom-0 left-4 right-4 h-0.5 bg-foreground rounded-full" />
+                )}
+              </button>
+              <button
+                onClick={() => { setRightPanelTab("chat"); if (!activeChatId) createNewChat(); }}
+                className={`flex-1 px-4 py-3 text-[13px] font-medium text-center transition-colors relative ${
+                  rightPanelTab === "chat" ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Chat
+                {rightPanelTab === "chat" && (
+                  <span className="absolute bottom-0 left-4 right-4 h-0.5 bg-foreground rounded-full" />
+                )}
+              </button>
+              <button
+                onClick={() => setRightPanelOpen(false)}
+                className="px-3 py-3 text-muted-foreground hover:text-foreground"
+                aria-label="Close panel"
+              >
+                <X size={16} />
+              </button>
             </div>
-            <div className="flex-1 overflow-hidden">
-              {focusTab === "content" && (
-                selectedItem ? (
-                  <SourceViewer item={selectedItem} />
-                ) : (
-                  <div className="flex h-full items-center justify-center text-[12px] text-zinc-500">
-                    Select something from the left rail.
-                  </div>
-                )
-              )}
-              {focusTab === "explain" && (
-                <ExplainPanel
+
+            {/* Panel content */}
+            <div className="flex-1 overflow-hidden flex flex-col">
+              {rightPanelTab === "learn" ? (
+                <LearnPanel
                   space={space}
+                  learnPanelError={learnPanelError}
                   generatingSummary={generatingSummary}
                   handleGenerateSummary={handleGenerateSummary}
-                  learnPanelError={learnPanelError}
-                />
-              )}
-              {focusTab === "practice" && (
-                <PracticePanel
-                  space={space}
+                  generatingQuiz={generatingQuiz}
+                  handleGenerateQuiz={handleGenerateQuiz}
                   quizAnswers={quizAnswers}
                   setQuizAnswers={setQuizAnswers}
                   quizSubmitted={quizSubmitted}
                   setQuizSubmitted={setQuizSubmitted}
-                  generatingQuiz={generatingQuiz}
-                  handleGenerateQuiz={handleGenerateQuiz}
+                  chatInput={chatInput}
+                  setChatInput={setChatInput}
+                  handleSendMessage={() => handleSendMessage()}
+                  sendingChat={sendingChat}
+                  chatSessions={chatSessions}
+                  openChatSession={openChatSession}
+                />
+              ) : (
+                <ChatSection
+                  messages={messages}
+                  sendingChat={sendingChat}
+                  chatInput={chatInput}
+                  setChatInput={setChatInput}
+                  handleSendMessage={handleSendMessage}
+                  quotedText={quotedText}
+                  setQuotedText={setQuotedText}
+                  followUps={followUps}
+                  chatEndRef={chatEndRef}
+                  chatSessions={chatSessions}
+                  activeChatId={activeChatId}
+                  openChatSession={openChatSession}
+                  createNewChat={createNewChat}
                 />
               )}
             </div>
-          </section>
-
-          <aside>
-            <StudyStack
-              space={space}
-              generatingSummary={generatingSummary}
-              generatingQuiz={generatingQuiz}
-              handleGenerateSummary={handleGenerateSummary}
-              handleGenerateQuiz={handleGenerateQuiz}
-              summariesReady={summariesReady}
-              quizReady={quizReady}
-              followUps={followUps}
-              chatSessions={chatSessions}
-              openChatSession={openChatSession}
-              setIsCommandCenterOpen={setIsCommandCenterOpen}
-            />
-          </aside>
-        </div>
+          </div>
+        </aside>
       </div>
-
-      <AIPanel
-        isMobile={isMobile}
-        aiPanelOpen={aiPanelOpen}
-        setAIPanelOpen={setAIPanelOpen}
-        aiPanelWidth={aiPanelWidth}
-        aiPanelTab={aiPanelTab}
-        setAIPanelTab={setAIPanelTab}
-        chatSessions={chatSessions}
-        setChatSessions={setChatSessions}
-        activeChatId={activeChatId}
-        openChatSession={openChatSession}
-        createNewChat={createNewChat}
-        showLearnTab={false}
-      >
-        <ChatSection
-          messages={messages}
-          sendingChat={sendingChat}
-          chatInput={chatInput}
-          setChatInput={setChatInput}
-          handleSendMessage={handleSendMessage}
-          quotedText={quotedText}
-          setQuotedText={setQuotedText}
-          followUps={followUps}
-          chatEndRef={chatEndRef}
-        />
-      </AIPanel>
     </div>
   );
 }

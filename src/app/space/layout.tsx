@@ -1,6 +1,6 @@
 "use client";
 import { useEffect } from "react";
-import AppSidebar, { SidebarProvider } from "@/components/app/sidebar";
+import AppNavbar from "@/components/app/navbar";
 
 export default function SpaceLayout({ children }: { children: React.ReactNode }) {
   useEffect(() => {
@@ -14,11 +14,9 @@ export default function SpaceLayout({ children }: { children: React.ReactNode })
     };
   }, []);
   return (
-    <SidebarProvider>
-      <div className="flex h-dvh overflow-hidden bg-background text-foreground">
-        <AppSidebar />
-        <main className="min-h-0 flex-1 overflow-y-auto">{children}</main>
-      </div>
-    </SidebarProvider>
+    <div className="flex flex-col h-dvh overflow-hidden bg-background text-foreground">
+      <AppNavbar />
+      <main className="min-h-0 flex-1 overflow-y-auto">{children}</main>
+    </div>
   );
 }

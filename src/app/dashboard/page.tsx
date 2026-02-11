@@ -67,9 +67,9 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="p-4 sm:p-6 md:p-8 max-w-[1100px] mx-auto pl-14 md:pl-8" role="status" aria-label="Loading dashboard">
+      <div className="p-4 sm:p-6 md:p-8 max-w-[1100px] mx-auto" role="status" aria-label="Loading dashboard">
         <div className="space-y-6">
-          <div className="h-9 bg-secondary rounded-lg w-72 animate-pulse" />
+          <div className="h-9 bg-secondary rounded-xl w-72 animate-pulse" />
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {[1, 2, 3].map((i) => (
               <div key={i} className="h-28 bg-secondary rounded-xl animate-pulse" />
@@ -92,7 +92,7 @@ export default function DashboardPage() {
   ];
 
   return (
-    <div className="p-4 sm:p-6 md:p-8 max-w-[1100px] mx-auto space-y-8 pl-14 md:pl-8">
+    <div className="p-4 sm:p-6 md:p-8 max-w-[1100px] mx-auto space-y-8">
       <header className="space-y-1">
         <h1 className="text-[24px] sm:text-[30px] font-semibold tracking-tight text-foreground">Dashboard</h1>
         <p className="text-[14px] sm:text-[15px] text-muted-foreground">
@@ -196,7 +196,7 @@ export default function DashboardPage() {
                   href={`/space/${item.spaceId}`}
                   className="flex items-center gap-3 px-4 py-3 hover:bg-secondary/40 transition-colors"
                 >
-                  <div className="w-8 h-8 rounded-md bg-secondary flex items-center justify-center shrink-0">
+                  <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center shrink-0">
                     <IconComponent size={15} className="text-muted-foreground" />
                   </div>
                   <div className="min-w-0 flex-1">

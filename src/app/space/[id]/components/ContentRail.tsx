@@ -36,24 +36,24 @@ export function ContentRail({ space, selectedContent, searchQuery, setSearchQuer
   );
 
   return (
-    <div className="flex h-full flex-col bg-zinc-950 text-zinc-100">
-      <div className="border-b border-zinc-900 px-4 py-3 text-[11px] font-semibold tracking-[0.3em] text-zinc-500 uppercase">
+    <div className="flex h-full flex-col bg-card text-foreground">
+      <div className="border-b border-border px-4 py-3 text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
         Library
       </div>
 
-      <label className="border-b border-zinc-900 px-4 py-3 flex items-center gap-3 text-xs text-zinc-400">
-        <Search size={14} className="text-zinc-600" />
+      <label className="border-b border-border px-4 py-3 flex items-center gap-3 text-xs text-muted-foreground">
+        <Search size={14} className="text-muted-foreground/60" />
         <input
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Filter content"
-          className="flex-1 bg-transparent text-[12px] uppercase tracking-[0.2em] text-zinc-200 outline-none"
+          placeholder="Filter content..."
+          className="flex-1 bg-transparent text-[12px] text-foreground outline-none placeholder:text-muted-foreground/50"
         />
       </label>
 
-      <div className="flex-1 overflow-y-auto divide-y divide-zinc-900">
+      <div className="flex-1 overflow-y-auto">
         {filtered.length === 0 ? (
-          <div className="px-4 py-8 text-[12px] text-zinc-500">No materials yet. Add content from the dashboard.</div>
+          <div className="px-4 py-8 text-[12px] text-muted-foreground">No materials yet. Add content from the dashboard.</div>
         ) : (
           filtered.map((item) => {
             const Icon = TYPE_ICONS[item.type] || FileText;
@@ -62,16 +62,16 @@ export function ContentRail({ space, selectedContent, searchQuery, setSearchQuer
               <button
                 key={item.id}
                 onClick={() => onSelectItem(item.id)}
-                className={`w-full px-4 py-4 text-left transition-colors ${
-                  isActive ? "bg-zinc-900 text-zinc-50" : "bg-transparent hover:bg-zinc-900/40"
+                className={`w-full px-4 py-3.5 text-left transition-colors border-b border-border ${
+                  isActive ? "bg-secondary text-foreground" : "bg-transparent hover:bg-secondary/50"
                 }`}
               >
-                <div className="flex items-center gap-3 text-[11px] uppercase tracking-[0.2em] text-zinc-500">
-                  <Icon size={14} className="text-zinc-600" />
-                  <span>{item.type}</span>
-                  <span className="ml-auto text-zinc-600">{timeAgo(item.createdAt)}</span>
+                <div className="flex items-center gap-2.5 text-[11px] text-muted-foreground">
+                  <Icon size={13} className="text-muted-foreground/60" />
+                  <span className="uppercase tracking-wide">{item.type}</span>
+                  <span className="ml-auto text-muted-foreground/50 text-[10px]">{timeAgo(item.createdAt)}</span>
                 </div>
-                <p className="mt-2 text-[13px] font-medium leading-snug text-zinc-100 line-clamp-2">
+                <p className="mt-1.5 text-[13px] font-medium leading-snug text-foreground line-clamp-2">
                   {item.name}
                 </p>
               </button>

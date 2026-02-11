@@ -35,17 +35,17 @@ export function SelectionToolbar({ position, text, onAction, onClose }: Selectio
 
   return (
     <div
-      className="fixed z-50 flex items-center gap-0.5 bg-zinc-950/90 backdrop-blur-xl rounded-full shadow-2xl border border-zinc-800 px-2 py-1.5 animate-in fade-in zoom-in-95 duration-200"
+      className="fixed z-50 flex items-center gap-0.5 bg-popover backdrop-blur-xl rounded-full shadow-2xl border border-border px-2 py-1.5 animate-in fade-in zoom-in-95 duration-200"
       style={{ left: clampedX, top: clampedY }}
     >
       <button
         onClick={handleCopy}
-        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-semibold text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100 transition-colors focus-visible:ring-2 focus-visible:ring-ring"
+        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-semibold text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors focus-visible:ring-2 focus-visible:ring-ring"
       >
         {copied ? <Check size={13} className="text-emerald-500" /> : <Copy size={13} />}
         {copied ? "Copied" : "Copy"}
       </button>
-      <div className="w-px h-4 bg-zinc-800" />
+      <div className="w-px h-4 bg-border" />
       {actions.map((a) => (
         <button
           key={a.id}
@@ -53,9 +53,9 @@ export function SelectionToolbar({ position, text, onAction, onClose }: Selectio
             onAction(a.id, text);
             onClose();
           }}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-semibold text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100 transition-colors focus-visible:ring-2 focus-visible:ring-ring"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-semibold text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors focus-visible:ring-2 focus-visible:ring-ring"
         >
-          <span className="text-zinc-500 group-hover:text-zinc-100">{a.icon}</span>
+          <span className="text-muted-foreground/70 group-hover:text-foreground">{a.icon}</span>
           {a.label}
         </button>
       ))}

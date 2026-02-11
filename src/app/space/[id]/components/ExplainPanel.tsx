@@ -16,13 +16,13 @@ export function ExplainPanel({ space, generatingSummary, handleGenerateSummary, 
   const summaries = space.summaries || [];
 
   return (
-    <div className="flex h-full flex-col bg-zinc-950 text-zinc-100">
-      <div className="flex items-center justify-between border-b border-zinc-900 px-6 py-3 text-[12px] uppercase tracking-[0.3em] text-zinc-500">
-        <span>Explain</span>
+    <div className="flex h-full flex-col bg-background text-foreground">
+      <div className="flex items-center justify-between border-b border-border px-6 py-3 text-[12px] text-muted-foreground">
+        <span className="font-medium">Explain</span>
         <button
           onClick={handleGenerateSummary}
           disabled={generatingSummary}
-          className="flex items-center gap-2 border border-zinc-800 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-200 transition hover:border-zinc-600 disabled:opacity-40"
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border text-[12px] font-medium text-foreground transition hover:bg-secondary disabled:opacity-40"
         >
           {generatingSummary ? <Loader2 size={12} className="animate-spin" /> : <RefreshCcw size={12} />}
           {summaries.length ? "Regenerate" : "Generate"}
@@ -30,24 +30,24 @@ export function ExplainPanel({ space, generatingSummary, handleGenerateSummary, 
       </div>
 
       {learnPanelError && (
-        <div className="border-b border-red-500/40 px-6 py-3 text-[12px] text-red-400">
+        <div className="border-b border-destructive/40 px-6 py-3 text-[12px] text-destructive">
           {learnPanelError}
         </div>
       )}
 
       <div className="flex-1 overflow-y-auto px-6 py-6">
         {summaries.length === 0 ? (
-          <div className="max-w-sm text-[13px] text-zinc-500">
+          <div className="max-w-sm text-[13px] text-muted-foreground">
             No summary yet. Generate one to get a clean brief of this space.
           </div>
         ) : (
-          <div className="space-y-8">
+          <div className="space-y-6">
             {summaries.map((summary) => (
-              <article key={summary.id} className="border border-zinc-800 bg-zinc-950 px-5 py-5 text-[13px] leading-relaxed text-zinc-200">
-                <header className="mb-3 text-[11px] font-semibold uppercase tracking-[0.3em] text-zinc-500">
+              <article key={summary.id} className="border border-border bg-card rounded-xl px-5 py-5 text-[13px] leading-relaxed text-foreground">
+                <header className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                   {summary.title || "Summary"}
                 </header>
-                <div className="prose prose-invert max-w-none prose-headings:tracking-tight prose-p:leading-relaxed prose-li:leading-relaxed">
+                <div className="prose-ai max-w-none">
                   <ReactMarkdown remarkPlugins={[remarkGfm]}>{summary.content}</ReactMarkdown>
                 </div>
               </article>

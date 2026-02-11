@@ -171,22 +171,45 @@ function SelectionToolbar({ position, text, onAction, onClose }: {
   onAction: (action: string, text: string) => void;
   onClose: () => void;
 }) {
+  const [copied, setCopied] = useState(false);
   const actions = [
     { id: "explain", label: "Explain", icon: <Lightbulb size={13} /> },
+    { id: "summarize", label: "Summarize", icon: <FileText size={13} /> },
     { id: "chat", label: "Chat", icon: <MessageSquare size={13} /> },
     { id: "quiz", label: "Quiz", icon: <Brain size={13} /> },
   ];
 
+  const handleCopy = () => {
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => { setCopied(false); onClose(); }, 1200);
+  };
+
+  // Clamp position within viewport — place well above selection so it doesn't block extending it
+  const toolbarHeight = 44;
+  const gap = 12;
+  const rawY = position.y - toolbarHeight - gap;
+  const clampedX = Math.max(8, Math.min(position.x, window.innerWidth - 420));
+  const clampedY = Math.max(8, rawY);
+
   return (
     <div
-      className="fixed z-50 flex items-center gap-1 bg-white dark:bg-[#1a1a1a] rounded-xl shadow-lg border border-[#e5e5e5] dark:border-[#333] px-2 py-1.5 animate-in fade-in zoom-in-95 duration-150"
-      style={{ left: position.x, top: position.y - 50 }}
+      className="fixed z-50 flex items-center gap-0.5 bg-white/95 dark:bg-[#1a1a1a]/95 backdrop-blur-lg rounded-2xl shadow-2xl border border-[#e0e0e0] dark:border-[#333] px-2 py-1.5 animate-in fade-in zoom-in-95 duration-150"
+      style={{ left: clampedX, top: clampedY }}
     >
+      <button
+        onClick={handleCopy}
+        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] font-medium text-[#555] dark:text-[#aaa] hover:bg-[#f0f0f0] dark:hover:bg-[#222] hover:text-black dark:hover:text-white transition-colors"
+      >
+        {copied ? <Check size={13} className="text-green-500" /> : <Copy size={13} />}
+        {copied ? "Copied" : "Copy"}
+      </button>
+      <div className="w-px h-4 bg-[#e5e5e5] dark:bg-[#333]" />
       {actions.map((a) => (
         <button
           key={a.id}
           onClick={() => { onAction(a.id, text); onClose(); }}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium text-[#555] dark:text-[#aaa] hover:bg-[#f0f0f0] dark:hover:bg-[#222] hover:text-black dark:hover:text-white transition-colors"
+          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] font-medium text-[#555] dark:text-[#aaa] hover:bg-[#f0f0f0] dark:hover:bg-[#222] hover:text-black dark:hover:text-white transition-colors"
         >
           {a.icon} {a.label}
         </button>
@@ -262,7 +285,7 @@ export default function SpaceDetailPage() {
       .finally(() => setLoading(false));
   }, [spaceId]);
 
-  /* text selection handler */
+  /* text selection handler — works for mouse and touch */
   const handleTextSelection = useCallback(() => {
     const sel = window.getSelection();
     const text = sel?.toString().trim();
@@ -270,7 +293,7 @@ export default function SpaceDetailPage() {
       const range = sel!.getRangeAt(0);
       const rect = range.getBoundingClientRect();
       setSelectionToolbar({
-        x: Math.min(rect.left + rect.width / 2 - 100, window.innerWidth - 280),
+        x: rect.left + rect.width / 2 - 140,
         y: rect.top + window.scrollY,
         text,
       });
@@ -283,7 +306,18 @@ export default function SpaceDetailPage() {
 
   useEffect(() => {
     document.addEventListener("mouseup", handleTextSelection);
-    return () => document.removeEventListener("mouseup", handleTextSelection);
+    // Touch support: selectionchange fires after long-press selection on mobile
+    let touchTimer: ReturnType<typeof setTimeout> | null = null;
+    const handleSelectionChange = () => {
+      if (touchTimer) clearTimeout(touchTimer);
+      touchTimer = setTimeout(handleTextSelection, 300);
+    };
+    document.addEventListener("selectionchange", handleSelectionChange);
+    return () => {
+      document.removeEventListener("mouseup", handleTextSelection);
+      document.removeEventListener("selectionchange", handleSelectionChange);
+      if (touchTimer) clearTimeout(touchTimer);
+    };
   }, [handleTextSelection]);
 
   /* ── Resize drag handlers ────────────────────────────── */
@@ -358,9 +392,12 @@ export default function SpaceDetailPage() {
 
   const handleSelectionAction = (action: string, text: string) => {
     setAIPanelTab("chat");
+    setAIPanelOpen(true);
     setQuotedText(text);
     if (action === "explain") {
       setChatInput("Explain this concept in detail:");
+    } else if (action === "summarize") {
+      setChatInput("Summarize this in simple terms:");
     } else if (action === "quiz") {
       setChatInput("Create a quick quiz question about this:");
     } else {
@@ -442,6 +479,16 @@ export default function SpaceDetailPage() {
 
   return (
     <div className="h-full flex bg-white dark:bg-[#0a0a0a]" ref={mainContainerRef}>
+
+        {/* ═══ Selection Toolbar (floating) ═══ */}
+        {selectionToolbar && (
+          <SelectionToolbar
+            position={{ x: selectionToolbar.x, y: selectionToolbar.y }}
+            text={selectionToolbar.text}
+            onAction={handleSelectionAction}
+            onClose={() => setSelectionToolbar(null)}
+          />
+        )}
 
         {/* ═══ MAIN CONTENT AREA ═══ */}
         <div className="flex-1 overflow-hidden bg-white dark:bg-[#0a0a0a] transition-all duration-300 flex flex-col" ref={contentRef}>
@@ -884,41 +931,79 @@ export default function SpaceDetailPage() {
                       <div ref={chatEndRef} />
                     </div>
 
-                    {/* Chat input */}
-                    <div className="sticky bottom-0 bg-white dark:bg-gray-900 pt-3 border-t border-gray-200 dark:border-gray-800">
+                    {/* Chat input — rich composer */}
+                    <div className="sticky bottom-0 pt-3">
+                      {/* Quoted text banner */}
                       {quotedText && (
-                          <div className="mb-2 p-2 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-start justify-between gap-2">
-                          <div className="flex-1 min-w-0">
-                            <p className="text-[11px] text-gray-600 dark:text-gray-400 font-medium mb-1">Quoted text:</p>
-                            <p className="text-[12px] text-gray-700 dark:text-gray-300 line-clamp-2">{quotedText}</p>
+                        <div className="mb-2 p-2.5 rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200/60 dark:border-blue-800/40 flex items-start justify-between gap-2">
+                          <div className="flex-1 min-w-0 flex items-start gap-2">
+                            <div className="w-1 h-full min-h-[28px] rounded-full bg-blue-500 dark:bg-blue-400 shrink-0 mt-0.5" />
+                            <div>
+                              <p className="text-[10px] uppercase tracking-wider text-blue-600 dark:text-blue-400 font-semibold mb-0.5">Selected text</p>
+                              <p className="text-[12px] text-gray-700 dark:text-gray-300 leading-relaxed line-clamp-2">{quotedText}</p>
+                            </div>
                           </div>
-                          <button onClick={() => setQuotedText(null)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors">
-                            <X size={14} className="text-gray-600 dark:text-gray-400" />
+                          <button onClick={() => setQuotedText(null)} className="p-1 hover:bg-blue-100 dark:hover:bg-blue-800/30 rounded-lg transition-colors shrink-0">
+                            <X size={14} className="text-blue-500 dark:text-blue-400" />
                           </button>
                         </div>
                       )}
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
+
+                      {/* Quick suggestion chips (when input is empty) */}
+                      {!chatInput.trim() && messages.length === 0 && (
+                        <div className="flex flex-wrap gap-1.5 mb-2.5">
+                          {[
+                            { label: "Explain this", icon: <Lightbulb size={11} /> },
+                            { label: "Key takeaways", icon: <FileText size={11} /> },
+                            { label: "Quiz me", icon: <Brain size={11} /> },
+                          ].map((chip) => (
+                            <button
+                              key={chip.label}
+                              onClick={() => setChatInput(chip.label)}
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-[11px] font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white hover:border-gray-300 dark:hover:border-gray-600 transition-all"
+                            >
+                              {chip.icon} {chip.label}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Input box */}
+                      <div className="relative rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/80 focus-within:border-gray-400 dark:focus-within:border-gray-500 focus-within:ring-2 focus-within:ring-gray-200 dark:focus-within:ring-gray-700 focus-within:bg-white dark:focus-within:bg-gray-800 transition-all shadow-sm">
+                        <textarea
                           value={chatInput}
-                          onChange={(e) => setChatInput(e.target.value)}
+                          onChange={(e) => {
+                            setChatInput(e.target.value);
+                            // Auto-resize
+                            e.target.style.height = 'auto';
+                            e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
+                          }}
                           onKeyDown={(e) => {
                             if (e.key === "Enter" && !e.shiftKey) {
                               e.preventDefault();
                               handleSendMessage();
                             }
                           }}
-                          placeholder="Ask a question..."
+                          placeholder="Ask anything about this content..."
                           disabled={sendingChat}
-                          className="flex-1 px-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 text-[14px] outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500 transition-all disabled:opacity-50 text-gray-900 dark:text-white placeholder:text-gray-400"
+                          rows={1}
+                          className="w-full px-4 pt-3 pb-10 rounded-2xl bg-transparent text-[14px] outline-none resize-none disabled:opacity-50 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 leading-relaxed"
+                          style={{ minHeight: '44px', maxHeight: '120px' }}
                         />
-                        <button
-                          onClick={handleSendMessage}
-                          disabled={!chatInput.trim() || sendingChat}
-                          className="px-4 py-2.5 rounded-lg bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          {sendingChat ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
-                        </button>
+                        <div className="absolute bottom-2 right-2 flex items-center gap-1">
+                          <span className="text-[10px] text-gray-400 dark:text-gray-500 mr-1 hidden sm:block">
+                            {chatInput.trim() ? '↵ Send' : ''}
+                          </span>
+                          <button
+                            onClick={handleSendMessage}
+                            disabled={!chatInput.trim() || sendingChat}
+                            className={`p-2 rounded-xl transition-all ${chatInput.trim() 
+                              ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:opacity-90 shadow-md hover:shadow-lg scale-100' 
+                              : 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed scale-95'} disabled:cursor-not-allowed`}
+                          >
+                            {sendingChat ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>

@@ -67,16 +67,46 @@ export async function POST(req: NextRequest) {
                 filePath = path.join(uploadsDir, fileName);
                 fs.writeFileSync(filePath, buffer);
 
-                // Extract text
-                // eslint-disable-next-line @typescript-eslint/no-require-imports
-                const pdfParseModule = require("pdf-parse");
-                const pdfParse = pdfParseModule.default || pdfParseModule;
-                const pdfData = await pdfParse(buffer);
-                extractedText = pdfData.text;
+                // Extract text using dynamic import (pdf-parse v2 is ESM)
+                const pdfParseModule = await import("pdf-parse");
+                const pdfParse = pdfParseModule.default ?? pdfParseModule;
+                const pdfData = await pdfParse(buffer, {
+                    // Preserve all text: don't skip any pages
+                    max: 0,
+                    // Custom page renderer to capture every character with structure
+                    pagerender: async function (pageData: { getTextContent: (opts: { normalizeWhitespace: boolean; disableCombineTextItems: boolean }) => Promise<{ items: Array<{ str: string; transform: number[]; hasEOL?: boolean }> }> }) {
+                        const textContent = await pageData.getTextContent({
+                            normalizeWhitespace: false,
+                            disableCombineTextItems: false,
+                        });
+                        // Build text preserving line breaks from the PDF layout
+                        let lastY: number | null = null;
+                        let text = "";
+                        for (const item of textContent.items) {
+                            const y = item.transform[5];
+                            if (lastY !== null && Math.abs(y - lastY) > 2) {
+                                text += "\n";
+                            }
+                            text += item.str;
+                            lastY = y;
+                        }
+                        return text;
+                    },
+                });
+
+                // Clean up: collapse 3+ newlines into 2, trim each line
+                extractedText = pdfData.text
+                    .replace(/\n{3,}/g, "\n\n")
+                    .split("\n")
+                    .map((l: string) => l.trimEnd())
+                    .join("\n")
+                    .trim();
+
                 metadata = {
                     pages: pdfData.numpages,
                     fileName: file.name,
                     fileSize: file.size,
+                    textLength: extractedText.length,
                 };
             } catch (err) {
                 console.error("PDF parse error:", err);

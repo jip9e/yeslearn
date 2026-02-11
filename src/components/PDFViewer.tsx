@@ -65,8 +65,67 @@ export default function PDFViewer({ url, title }: PDFViewerProps) {
     const [error, setError] = useState<string | null>(null);
     const [containerWidth, setContainerWidth] = useState<number>(0);
     const [currentPage, setCurrentPage] = useState(1);
+    const [isSelecting, setIsSelecting] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
     const pageRefs = useRef<Map<number, HTMLDivElement>>(new Map());
+
+    // ── Lock scroll while user is selecting text ─────────
+    // When a mousedown/touchstart lands on the PDF text layer we freeze
+    // the scroll container so dragging to extend the selection doesn't
+    // fight with scrolling — especially important on iPad / touch.
+    useEffect(() => {
+        const container = containerRef.current;
+        if (!container) return;
+
+        const isTextLayer = (el: EventTarget | null): boolean => {
+            if (!(el instanceof HTMLElement)) return false;
+            return (
+                el.closest(".react-pdf__Page__textContent") !== null ||
+                el.closest(".react-pdf__Page") !== null
+            );
+        };
+
+        const lockScroll = (e: MouseEvent | TouchEvent) => {
+            if (isTextLayer(e.target)) {
+                setIsSelecting(true);
+                container.style.overflow = "hidden";
+                // On touch: also prevent the default scroll gesture
+                container.style.touchAction = "none";
+            }
+        };
+
+        const unlockScroll = () => {
+            if (container.style.overflow === "hidden") {
+                container.style.overflow = "auto";
+                container.style.touchAction = "";
+            }
+            setIsSelecting(false);
+        };
+
+        container.addEventListener("mousedown", lockScroll);
+        container.addEventListener("touchstart", lockScroll, { passive: true });
+        document.addEventListener("mouseup", unlockScroll);
+        document.addEventListener("touchend", unlockScroll);
+        // Also unlock if user presses Escape or clicks outside
+        document.addEventListener("selectionchange", () => {
+            const sel = window.getSelection();
+            if (!sel || sel.isCollapsed) unlockScroll();
+        });
+
+        // Suppress native context menu on the PDF so our custom toolbar takes over
+        const suppressContextMenu = (e: Event) => {
+            if (isTextLayer(e.target)) e.preventDefault();
+        };
+        container.addEventListener("contextmenu", suppressContextMenu);
+
+        return () => {
+            container.removeEventListener("mousedown", lockScroll);
+            container.removeEventListener("touchstart", lockScroll);
+            document.removeEventListener("mouseup", unlockScroll);
+            document.removeEventListener("touchend", unlockScroll);
+            container.removeEventListener("contextmenu", suppressContextMenu);
+        };
+    }, []);
 
     // Observe container width changes so PDF pages fit inside
     useEffect(() => {
@@ -214,7 +273,7 @@ export default function PDFViewer({ url, title }: PDFViewerProps) {
             {/* PDF Pages with Virtual Scrolling */}
             <div 
                 ref={containerRef} 
-                className="flex-1 overflow-auto scroll-smooth bg-gradient-to-br from-[#f5f7fa] to-[#e8ebf0] dark:from-gray-950 dark:to-gray-900"
+                className="flex-1 overflow-auto bg-gradient-to-br from-[#f5f7fa] to-[#e8ebf0] dark:from-gray-950 dark:to-gray-900"
             >
                 {loading && (
                     <div className="flex flex-col items-center justify-center py-32 gap-3">

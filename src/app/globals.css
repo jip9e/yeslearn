@@ -466,15 +466,27 @@
 
   .react-pdf__Page__textContent {
     user-select: text !important;
+    -webkit-user-select: text !important;
     cursor: text !important;
+    /* Prevent touch-action from stealing gestures while selecting */
+    touch-action: manipulation;
+  }
+
+  /* Make individual text spans selectable and suppress native
+     iOS callout (Copy / Look Up / Translate) so only our
+     custom AI toolbar appears */
+  .react-pdf__Page__textContent span {
+    user-select: text !important;
+    -webkit-user-select: text !important;
+    -webkit-touch-callout: none !important;
   }
 
   .react-pdf__Page__textContent span::selection {
-    background: rgba(59, 130, 246, 0.3);
+    background: rgba(59, 130, 246, 0.35);
   }
 
   .react-pdf__Page__textContent span::-moz-selection {
-    background: rgba(59, 130, 246, 0.3);
+    background: rgba(59, 130, 246, 0.35);
   }
 
   .react-pdf__Document {

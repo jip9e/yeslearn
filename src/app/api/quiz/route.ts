@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
             {
                 role: "system" as const,
                 content: `You are a quiz generator for students. Create multiple-choice questions to test understanding.
-**ALWAYS write questions and options in English**, regardless of the language of the source material.
+**ALWAYS write questions and options in the SAME language as the source material.** If the source is in French, write questions in French. If in English, write in English. Match the language of the original content exactly.
 
 Output your response as a JSON array of questions with this exact format:
 [{"question": "What is...?", "options": ["Option A", "Option B", "Option C", "Option D"], "correctIndex": 0}]

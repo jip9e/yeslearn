@@ -118,11 +118,14 @@ Second follow-up question here?
 Third follow-up question here?
 ---end-follow-up---`;
 
+        // Detect language from context or user message
+        const detectLanguageInstruction = `Detect the language of the student's message and the source material. ALWAYS respond in the SAME language as the student's message. If the student writes in French, respond in French. If in English, respond in English. If in Arabic, respond in Arabic. Match the student's language exactly.`;
+
         const systemPrompt = contextText
             ? `You are YesLearn AI, a premium AI study tutor. You help students deeply understand their learning materials.
 
 ## Response Guidelines
-- **ALWAYS respond in English**, regardless of the language of the source material or the student's message
+- ${detectLanguageInstruction}
 - Use **markdown formatting** extensively: headers (##, ###), **bold** for key terms, bullet points for lists
 - Structure long answers with clear sections using ## headers
 - Use simple analogies and real-world examples to explain complex concepts
@@ -139,7 +142,7 @@ ${contextText}`
             : `You are YesLearn AI, a premium AI study tutor. The student hasn't uploaded any materials yet.
 
 ## Response Guidelines
-- **ALWAYS respond in English**, regardless of the language of the source material or the student's message
+- ${detectLanguageInstruction}
 - Use **markdown formatting**: headers, **bold**, bullet points, numbered lists
 - Be warm, encouraging, and helpful
 - Help with general questions and encourage them to add content (PDFs, YouTube videos, websites) to their space for personalized learning

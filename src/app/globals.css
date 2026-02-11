@@ -462,11 +462,13 @@
   /* ── PDF Viewer (react-pdf) ──────────────────────────── */
   .react-pdf__Page {
     position: relative;
+    -webkit-touch-callout: none !important;
   }
 
   .react-pdf__Page__textContent {
     user-select: text !important;
     -webkit-user-select: text !important;
+    -webkit-touch-callout: none !important;
     cursor: text !important;
     /* Prevent touch-action from stealing gestures while selecting */
     touch-action: manipulation;
@@ -481,15 +483,16 @@
     -webkit-touch-callout: none !important;
   }
 
-  .react-pdf__Page__textContent span::selection {
+  .react-pdf__Page__textContent *::selection {
     background: rgba(59, 130, 246, 0.35);
   }
 
-  .react-pdf__Page__textContent span::-moz-selection {
+  .react-pdf__Page__textContent *::-moz-selection {
     background: rgba(59, 130, 246, 0.35);
   }
 
   .react-pdf__Document {
+    -webkit-touch-callout: none !important;
     display: flex;
     flex-direction: column;
     align-items: center;

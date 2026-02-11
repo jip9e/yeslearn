@@ -89,7 +89,6 @@ export default function PDFViewer({ url, title }: PDFViewerProps) {
             if (isTextLayer(e.target)) {
                 setIsSelecting(true);
                 container.style.overflow = "hidden";
-                // On touch: also prevent the default scroll gesture
                 container.style.touchAction = "none";
             }
         };
@@ -102,15 +101,43 @@ export default function PDFViewer({ url, title }: PDFViewerProps) {
             setIsSelecting(false);
         };
 
+        // ── Dismiss native iOS callout ──────────────────
+        // After text is selected on iOS, briefly clear and restore the
+        // selection range. This causes the native UIMenuController
+        // (Copy / Look Up / Translate) to dismiss while our custom
+        // toolbar stays up.
+        const dismissNativeCallout = () => {
+            const sel = window.getSelection();
+            if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return;
+            try {
+                const range = sel.getRangeAt(0).cloneRange();
+                sel.removeAllRanges();
+                requestAnimationFrame(() => {
+                    sel.addRange(range);
+                });
+            } catch {
+                // Ignore — range may have been invalidated
+            }
+        };
+
         container.addEventListener("mousedown", lockScroll);
         container.addEventListener("touchstart", lockScroll, { passive: true });
         document.addEventListener("mouseup", unlockScroll);
-        document.addEventListener("touchend", unlockScroll);
+
+        const handleTouchEnd = (e: TouchEvent) => {
+            unlockScroll();
+            if (isTextLayer(e.target)) {
+                setTimeout(dismissNativeCallout, 60);
+            }
+        };
+        document.addEventListener("touchend", handleTouchEnd);
+
         // Also unlock if user presses Escape or clicks outside
-        document.addEventListener("selectionchange", () => {
+        const handleSelectionChange = () => {
             const sel = window.getSelection();
             if (!sel || sel.isCollapsed) unlockScroll();
-        });
+        };
+        document.addEventListener("selectionchange", handleSelectionChange);
 
         // Suppress native context menu on the PDF so our custom toolbar takes over
         const suppressContextMenu = (e: Event) => {
@@ -122,7 +149,8 @@ export default function PDFViewer({ url, title }: PDFViewerProps) {
             container.removeEventListener("mousedown", lockScroll);
             container.removeEventListener("touchstart", lockScroll);
             document.removeEventListener("mouseup", unlockScroll);
-            document.removeEventListener("touchend", unlockScroll);
+            document.removeEventListener("touchend", handleTouchEnd);
+            document.removeEventListener("selectionchange", handleSelectionChange);
             container.removeEventListener("contextmenu", suppressContextMenu);
         };
     }, []);

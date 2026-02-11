@@ -278,10 +278,18 @@ export default function SpaceDetailPage() {
     fetch(`/api/spaces/${spaceId}`)
       .then((r) => r.json())
       .then((data) => {
-        setSpace(data);
+        if (data.error) return;
+        setSpace({
+          ...data,
+          contentItems: data.contentItems || [],
+          chatMessages: data.chatMessages || [],
+          summaries: data.summaries || [],
+          quizQuestions: data.quizQuestions || [],
+        });
         setMessages(data.chatMessages || []);
         if (data.contentItems?.length > 0) setSelectedContent(data.contentItems[0].id);
       })
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, [spaceId]);
 
@@ -471,8 +479,8 @@ export default function SpaceDetailPage() {
 
   const selectedItem = space.contentItems.find((c) => c.id === selectedContent);
   const filteredItems = space.contentItems.filter((c) => c.name.toLowerCase().includes(searchQuery.toLowerCase()));
-  const quizScore = space.quizQuestions.filter((q, i) => quizAnswers[i] === q.correctIndex).length;
-  const quizTotal = space.quizQuestions.length;
+  const quizScore = (space.quizQuestions || []).filter((q, i) => quizAnswers[i] === q.correctIndex).length;
+  const quizTotal = (space.quizQuestions || []).length;
   const quizPercent = quizTotal > 0 ? Math.round((quizScore / quizTotal) * 100) : 0;
 
   /* ════════════════════════ RENDER ══════════════════════ */
@@ -865,7 +873,7 @@ export default function SpaceDetailPage() {
                   </div>
 
                   {/* Summaries */}
-                  {space.summaries.length > 0 && (
+                  {(space.summaries || []).length > 0 && (
                     <div>
                       <div className="flex items-center justify-between mb-3">
                         <h4 className="text-[13px] font-semibold text-gray-700 dark:text-gray-300">Summary</h4>
@@ -878,7 +886,7 @@ export default function SpaceDetailPage() {
                         </button>
                       </div>
                       <div className="space-y-3">
-                        {space.summaries.map((s) => (
+                        {(space.summaries || []).map((s) => (
                           <div key={s.id} className="p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50">
                             <p className="text-[13px] font-medium mb-2 text-gray-900 dark:text-white">{s.title}</p>
                             <div className="text-[13px] text-gray-600 dark:text-gray-400 leading-relaxed prose-ai">
@@ -890,54 +898,130 @@ export default function SpaceDetailPage() {
                     </div>
                   )}
 
-                  {/* Chat Section - Always visible */}
-                  <div>
-                    <h4 className="text-[13px] font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
-                      <MessageSquare size={16} />
-                      Chat with AI
-                    </h4>
+                  {/* ═══ CHAT — Next-Gen UI ═══ */}
+                  <div className="flex flex-col flex-1 -mx-5 -mb-6">
+                    {/* Chat header bar */}
+                    <div className="flex items-center justify-between px-5 py-3 border-y border-gray-100 dark:border-gray-800/60 bg-gray-50/50 dark:bg-gray-900/40">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                        <span className="text-[12px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">AI Chat</span>
+                      </div>
+                      {messages.length > 0 && (
+                        <span className="text-[10px] text-gray-400 dark:text-gray-500">{messages.length} messages</span>
+                      )}
+                    </div>
                     
-                    {/* Chat messages */}
-                    <div className="space-y-3 mb-4 max-h-[400px] overflow-y-auto">
+                    {/* Messages area */}
+                    <div className="flex-1 overflow-y-auto px-4 py-4 space-y-1 min-h-[200px] max-h-[50vh]" style={{ scrollBehavior: 'smooth' }}>
                       {messages.length === 0 ? (
-                        <div className="text-center py-8 text-gray-500 dark:text-gray-400 text-[13px]">
-                          Ask me anything about this content
+                        /* Empty state */
+                        <div className="flex flex-col items-center justify-center py-10 gap-4">
+                          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 flex items-center justify-center shadow-inner">
+                            <Sparkles size={24} className="text-gray-400 dark:text-gray-500" />
+                          </div>
+                          <div className="text-center">
+                            <p className="text-[14px] font-medium text-gray-700 dark:text-gray-300 mb-1">Your AI study buddy</p>
+                            <p className="text-[12px] text-gray-400 dark:text-gray-500 max-w-[220px] leading-relaxed">Select text from your content or ask me anything below</p>
+                          </div>
                         </div>
                       ) : (
-                        messages.map((msg) => (
-                          <div key={msg.id} className={`flex gap-3 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                            {msg.role === "ai" && (
-                              <div className="w-8 h-8 rounded-lg bg-black dark:bg-white flex items-center justify-center text-white dark:text-black shrink-0">
-                                <Sparkles size={14} />
-                              </div>
-                            )}
-                            <div className={`max-w-[85%] ${msg.role === "user" ? "order-first" : ""}`}>
-                              <div className={`p-3 rounded-xl ${
-                                msg.role === "user"
-                                  ? "bg-gray-900 dark:bg-white text-white dark:text-gray-900"
-                                  : "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white"
-                              }`}>
-                                <ReactMarkdown 
-                                  remarkPlugins={[remarkGfm]}
-                                  className="text-[13px] leading-relaxed prose-ai"
-                                >
-                                  {msg.content}
-                                </ReactMarkdown>
+                        messages.map((msg, idx) => {
+                          const isUser = msg.role === "user";
+                          const isLast = idx === messages.length - 1;
+                          const hasQuote = msg.content.startsWith("> ");
+                          const quotePart = hasQuote ? msg.content.split("\n\n")[0].replace(/^> /, "") : null;
+                          const mainContent = hasQuote ? msg.content.split("\n\n").slice(1).join("\n\n") : msg.content;
+
+                          return (
+                            <div key={msg.id} className={`group flex gap-2.5 py-2 ${isUser ? "justify-end" : "justify-start"} ${isLast ? "animate-in fade-in slide-in-from-bottom-2 duration-300" : ""}`}>
+                              {/* AI avatar */}
+                              {!isUser && (
+                                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shrink-0 mt-1 shadow-md shadow-violet-500/20">
+                                  <Sparkles size={12} className="text-white" />
+                                </div>
+                              )}
+
+                              <div className={`max-w-[88%] flex flex-col gap-1 ${isUser ? "items-end" : "items-start"}`}>
+                                {/* Sender label */}
+                                <span className={`text-[10px] font-medium uppercase tracking-wider px-1 ${isUser ? "text-gray-400 dark:text-gray-500" : "text-violet-500 dark:text-violet-400"}`}>
+                                  {isUser ? "You" : "AI"}
+                                </span>
+
+                                {/* Quote block (if user sent selected text) */}
+                                {isUser && quotePart && (
+                                  <div className="px-3 py-2 rounded-xl bg-blue-50 dark:bg-blue-900/20 border-l-2 border-blue-400 dark:border-blue-500 max-w-full">
+                                    <p className="text-[11px] text-blue-700 dark:text-blue-300 leading-relaxed line-clamp-3 italic">{quotePart}</p>
+                                  </div>
+                                )}
+
+                                {/* Message bubble */}
+                                <div className={`px-4 py-3 rounded-2xl relative ${
+                                  isUser
+                                    ? "bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-br-md"
+                                    : "bg-white dark:bg-gray-800/80 text-gray-800 dark:text-gray-100 rounded-bl-md border border-gray-100 dark:border-gray-700/50 shadow-sm"
+                                }`}>
+                                  <div className={`text-[13px] leading-[1.75] prose-ai ${isUser ? "[&_strong]:text-white [&_a]:text-blue-300" : "[&_strong]:text-gray-900 dark:[&_strong]:text-white [&_a]:text-blue-600 dark:[&_a]:text-blue-400"} [&_h1]:text-[16px] [&_h2]:text-[15px] [&_h3]:text-[14px] [&_h1]:font-bold [&_h2]:font-bold [&_h3]:font-semibold [&_h1]:mt-4 [&_h1]:mb-2 [&_h2]:mt-3 [&_h2]:mb-1.5 [&_h3]:mt-2 [&_h3]:mb-1 [&_ul]:space-y-1 [&_ol]:space-y-1 [&_li]:leading-relaxed [&_p]:mb-2 [&_p:last-child]:mb-0 [&_code]:text-[12px] [&_code]:bg-black/5 dark:[&_code]:bg-white/10 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded-md`}>
+                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                      {isUser ? mainContent : msg.content}
+                                    </ReactMarkdown>
+                                  </div>
+                                </div>
+
+                                {/* Actions row (AI messages only) */}
+                                {!isUser && (
+                                  <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pl-1">
+                                    <button
+                                      onClick={() => { navigator.clipboard.writeText(msg.content); }}
+                                      className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                                      title="Copy response"
+                                    >
+                                      <Copy size={11} className="text-gray-400 dark:text-gray-500" />
+                                    </button>
+                                    <button className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors" title="Good response">
+                                      <ThumbsUp size={11} className="text-gray-400 dark:text-gray-500" />
+                                    </button>
+                                    <button className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors" title="Bad response">
+                                      <ThumbsDown size={11} className="text-gray-400 dark:text-gray-500" />
+                                    </button>
+                                  </div>
+                                )}
+
+                                {/* Timestamp */}
+                                <span className={`text-[9px] px-1 ${isUser ? "text-gray-400 dark:text-gray-500" : "text-gray-300 dark:text-gray-600"}`}>
+                                  {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </span>
                               </div>
                             </div>
-                          </div>
-                        ))
+                          );
+                        })
                       )}
+
+                      {/* Typing indicator */}
+                      {sendingChat && (
+                        <div className="flex gap-2.5 py-2 animate-in fade-in slide-in-from-bottom-2 duration-200">
+                          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shrink-0 mt-1 shadow-md shadow-violet-500/20">
+                            <Sparkles size={12} className="text-white" />
+                          </div>
+                          <div className="px-4 py-3 rounded-2xl rounded-bl-md bg-white dark:bg-gray-800/80 border border-gray-100 dark:border-gray-700/50 shadow-sm">
+                            <div className="flex items-center gap-1.5">
+                              <div className="w-2 h-2 rounded-full bg-violet-400 animate-bounce" style={{ animationDelay: '0ms' }} />
+                              <div className="w-2 h-2 rounded-full bg-violet-400 animate-bounce" style={{ animationDelay: '150ms' }} />
+                              <div className="w-2 h-2 rounded-full bg-violet-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
                       <div ref={chatEndRef} />
                     </div>
 
-                    {/* Chat input — rich composer */}
-                    <div className="sticky bottom-0 pt-3">
+                    {/* ─── Composer ─────────────────────────── */}
+                    <div className="px-4 pb-4 pt-2 border-t border-gray-100 dark:border-gray-800/60 bg-white/60 dark:bg-[#0a0a0a]/60 backdrop-blur-xl">
                       {/* Quoted text banner */}
                       {quotedText && (
-                        <div className="mb-2 p-2.5 rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200/60 dark:border-blue-800/40 flex items-start justify-between gap-2">
+                        <div className="mb-2.5 p-2.5 rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200/60 dark:border-blue-800/40 flex items-start justify-between gap-2">
                           <div className="flex-1 min-w-0 flex items-start gap-2">
-                            <div className="w-1 h-full min-h-[28px] rounded-full bg-blue-500 dark:bg-blue-400 shrink-0 mt-0.5" />
+                            <div className="w-1 self-stretch rounded-full bg-blue-500 dark:bg-blue-400 shrink-0" />
                             <div>
                               <p className="text-[10px] uppercase tracking-wider text-blue-600 dark:text-blue-400 font-semibold mb-0.5">Selected text</p>
                               <p className="text-[12px] text-gray-700 dark:text-gray-300 leading-relaxed line-clamp-2">{quotedText}</p>
@@ -949,18 +1033,19 @@ export default function SpaceDetailPage() {
                         </div>
                       )}
 
-                      {/* Quick suggestion chips (when input is empty) */}
+                      {/* Suggestion chips */}
                       {!chatInput.trim() && messages.length === 0 && (
                         <div className="flex flex-wrap gap-1.5 mb-2.5">
                           {[
                             { label: "Explain this", icon: <Lightbulb size={11} /> },
                             { label: "Key takeaways", icon: <FileText size={11} /> },
                             { label: "Quiz me", icon: <Brain size={11} /> },
+                            { label: "Simplify", icon: <Sparkles size={11} /> },
                           ].map((chip) => (
                             <button
                               key={chip.label}
                               onClick={() => setChatInput(chip.label)}
-                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-[11px] font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white hover:border-gray-300 dark:hover:border-gray-600 transition-all"
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gray-100 dark:bg-gray-800 text-[11px] font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white transition-all active:scale-95"
                             >
                               {chip.icon} {chip.label}
                             </button>
@@ -968,13 +1053,12 @@ export default function SpaceDetailPage() {
                         </div>
                       )}
 
-                      {/* Input box */}
-                      <div className="relative rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/80 focus-within:border-gray-400 dark:focus-within:border-gray-500 focus-within:ring-2 focus-within:ring-gray-200 dark:focus-within:ring-gray-700 focus-within:bg-white dark:focus-within:bg-gray-800 transition-all shadow-sm">
+                      {/* Input */}
+                      <div className="relative rounded-2xl bg-gray-100 dark:bg-gray-800/60 focus-within:bg-white dark:focus-within:bg-gray-800 focus-within:ring-2 focus-within:ring-violet-500/30 dark:focus-within:ring-violet-400/30 focus-within:shadow-lg focus-within:shadow-violet-500/5 transition-all duration-200">
                         <textarea
                           value={chatInput}
                           onChange={(e) => {
                             setChatInput(e.target.value);
-                            // Auto-resize
                             e.target.style.height = 'auto';
                             e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
                           }}
@@ -984,26 +1068,21 @@ export default function SpaceDetailPage() {
                               handleSendMessage();
                             }
                           }}
-                          placeholder="Ask anything about this content..."
+                          placeholder="Ask anything..."
                           disabled={sendingChat}
                           rows={1}
-                          className="w-full px-4 pt-3 pb-10 rounded-2xl bg-transparent text-[14px] outline-none resize-none disabled:opacity-50 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 leading-relaxed"
+                          className="w-full pl-4 pr-12 pt-3 pb-3 rounded-2xl bg-transparent text-[13px] outline-none resize-none disabled:opacity-50 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 leading-relaxed"
                           style={{ minHeight: '44px', maxHeight: '120px' }}
                         />
-                        <div className="absolute bottom-2 right-2 flex items-center gap-1">
-                          <span className="text-[10px] text-gray-400 dark:text-gray-500 mr-1 hidden sm:block">
-                            {chatInput.trim() ? '↵ Send' : ''}
-                          </span>
-                          <button
-                            onClick={handleSendMessage}
-                            disabled={!chatInput.trim() || sendingChat}
-                            className={`p-2 rounded-xl transition-all ${chatInput.trim() 
-                              ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:opacity-90 shadow-md hover:shadow-lg scale-100' 
-                              : 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed scale-95'} disabled:cursor-not-allowed`}
-                          >
-                            {sendingChat ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
-                          </button>
-                        </div>
+                        <button
+                          onClick={handleSendMessage}
+                          disabled={!chatInput.trim() || sendingChat}
+                          className={`absolute right-2 bottom-1.5 p-2 rounded-xl transition-all duration-200 ${chatInput.trim() 
+                            ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-lg shadow-violet-500/25 hover:shadow-violet-500/40 scale-100 hover:scale-105 active:scale-95' 
+                            : 'bg-transparent text-gray-300 dark:text-gray-600 scale-90'} disabled:cursor-not-allowed`}
+                        >
+                          {sendingChat ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+                        </button>
                       </div>
                     </div>
                   </div>

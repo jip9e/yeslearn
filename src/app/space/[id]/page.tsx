@@ -76,10 +76,30 @@ export default function SpaceDetailPage() {
           ...data,
           contentItems: data.contentItems || [],
           chatMessages: data.chatMessages || [],
+          chatSessions: data.chatSessions || [],
           summaries: data.summaries || [],
           quizQuestions: data.quizQuestions || [],
         });
-        setMessages(data.chatMessages || []);
+
+        // Load persisted sessions
+        const loadedSessions: ChatSession[] = (data.chatSessions || []).map((s: any) => ({
+          id: s.id,
+          name: s.name,
+          messages: s.messages || [],
+          createdAt: s.createdAt || s.created_at || new Date().toISOString(),
+        }));
+        setChatSessions(loadedSessions);
+
+        // If there are sessions, activate the most recent one
+        if (loadedSessions.length > 0) {
+          const latest = loadedSessions[loadedSessions.length - 1];
+          setActiveChatId(latest.id);
+          setMessages(latest.messages);
+        } else if (data.chatMessages?.length > 0) {
+          // Orphan messages (from before sessions) — show them in a default session
+          setMessages(data.chatMessages);
+        }
+
         if (data.contentItems?.length > 0) setSelectedContent(data.contentItems[0].id);
       })
       .catch(() => {})
@@ -153,12 +173,16 @@ export default function SpaceDetailPage() {
     setRightPanelOpen(true);
 
     let sessionId = activeChatId;
+    let sessionName = input.slice(0, 40) + (input.length > 40 ? "..." : "");
     if (!sessionId) {
       sessionId = nextChatId();
-      const sessionName = input.slice(0, 40) + (input.length > 40 ? "..." : "");
       const newSession: ChatSession = { id: sessionId, name: sessionName, messages: [], createdAt: new Date().toISOString() };
       setChatSessions(prev => [...prev, newSession]);
       setActiveChatId(sessionId);
+    } else {
+      // Use existing session name
+      const existing = chatSessions.find(s => s.id === sessionId);
+      sessionName = existing?.name || sessionName;
     }
 
     try {
@@ -168,7 +192,7 @@ export default function SpaceDetailPage() {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ spaceId, role: "user", content: userMsg }),
+        body: JSON.stringify({ spaceId, role: "user", content: userMsg, sessionId, sessionName }),
       });
       const data = await res.json();
 

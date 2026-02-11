@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
-import { spaces, contentItems, chatMessages, summaries, quizQuestions } from "@/lib/db/schema";
+import { spaces, contentItems, chatMessages, chatSessions, summaries, quizQuestions } from "@/lib/db/schema";
 import { eq, desc, sql } from "drizzle-orm";
 
 // GET /api/spaces/:id — get space with content items
@@ -31,6 +31,22 @@ export async function GET(
             .orderBy(chatMessages.createdAt)
             .all();
 
+        const sessions = db
+            .select()
+            .from(chatSessions)
+            .where(eq(chatSessions.spaceId, id))
+            .orderBy(chatSessions.createdAt)
+            .all();
+
+        // Group messages by session
+        const sessionsWithMessages = sessions.map((s) => ({
+            ...s,
+            messages: messages.filter((m) => m.sessionId === s.id),
+        }));
+
+        // Include orphan messages (no session) for backward compat
+        const orphanMessages = messages.filter((m) => !m.sessionId);
+
         const spaceSummaries = db
             .select()
             .from(summaries)
@@ -48,7 +64,8 @@ export async function GET(
         return NextResponse.json({
             ...space,
             contentItems: items,
-            chatMessages: messages,
+            chatMessages: orphanMessages,
+            chatSessions: sessionsWithMessages,
             summaries: spaceSummaries,
             quizQuestions: quizzes.map((q) => ({
                 ...q,

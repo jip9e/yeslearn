@@ -33,12 +33,26 @@ export const contentItems = sqliteTable("content_items", {
         .notNull(),
 });
 
+// ── Chat Sessions ───────────────────────────────────────────
+export const chatSessions = sqliteTable("chat_sessions", {
+    id: text("id").primaryKey(),
+    spaceId: text("space_id")
+        .notNull()
+        .references(() => spaces.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    createdAt: text("created_at")
+        .default(sql`(datetime('now'))`)
+        .notNull(),
+});
+
 // ── Chat Messages ───────────────────────────────────────────
 export const chatMessages = sqliteTable("chat_messages", {
     id: text("id").primaryKey(),
     spaceId: text("space_id")
         .notNull()
         .references(() => spaces.id, { onDelete: "cascade" }),
+    sessionId: text("session_id")
+        .references(() => chatSessions.id, { onDelete: "cascade" }),
     role: text("role").notNull(), // user | ai
     content: text("content").notNull(),
     createdAt: text("created_at")

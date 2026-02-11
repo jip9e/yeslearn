@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
-import { chatMessages, contentItems, settings } from "@/lib/db/schema";
+import { chatMessages, chatSessions, contentItems, settings } from "@/lib/db/schema";
 import { generateId } from "@/lib/id";
 import { eq } from "drizzle-orm";
 import { chatCompletion } from "@/lib/ai/aiClient";
@@ -10,7 +10,7 @@ import { getDefaultProfile } from "@/lib/auth/tokenStore";
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
-        const { spaceId, role, content, model: requestedModel } = body;
+        const { spaceId, role, content, model: requestedModel, sessionId, sessionName } = body;
 
         if (!spaceId || !role || !content) {
             return NextResponse.json(
@@ -21,10 +21,21 @@ export async function POST(req: NextRequest) {
 
         const db = getDb();
 
+        // Ensure session exists (create if new)
+        let resolvedSessionId = sessionId || null;
+        if (resolvedSessionId) {
+            const existing = db.select().from(chatSessions).where(eq(chatSessions.id, resolvedSessionId)).get();
+            if (!existing) {
+                db.insert(chatSessions)
+                    .values({ id: resolvedSessionId, spaceId, name: sessionName || "New Chat" })
+                    .run();
+            }
+        }
+
         // Save user message
         const userMsgId = generateId();
         db.insert(chatMessages)
-            .values({ id: userMsgId, spaceId, role, content })
+            .values({ id: userMsgId, spaceId, sessionId: resolvedSessionId, role, content })
             .run();
 
         const savedUser = db
@@ -49,7 +60,7 @@ export async function POST(req: NextRequest) {
             const noProviderMsg = "I'd love to help! Please connect an AI provider in **Settings → AI Providers** to enable intelligent responses. Your message has been saved and I'll have full context when AI is enabled.";
             const aiId = generateId();
             db.insert(chatMessages)
-                .values({ id: aiId, spaceId, role: "ai", content: noProviderMsg })
+                .values({ id: aiId, spaceId, sessionId: resolvedSessionId, role: "ai", content: noProviderMsg })
                 .run();
             const savedAi = db.select().from(chatMessages).where(eq(chatMessages.id, aiId)).get();
             return NextResponse.json({ userMessage: savedUser, aiMessage: savedAi }, { status: 201 });
@@ -74,13 +85,13 @@ export async function POST(req: NextRequest) {
             .map(c => `--- ${c.name} ---\n${c.text!.slice(0, 15000)}`)
             .join("\n\n");
 
-        // Get recent chat history (last 20 messages)
-        const history = db
+        // Get recent chat history (last 20 messages from current session, or all if no session)
+        const allMsgs = db
             .select()
             .from(chatMessages)
-            .where(eq(chatMessages.spaceId, spaceId))
-            .all()
-            .slice(-20);
+            .where(resolvedSessionId ? eq(chatMessages.sessionId, resolvedSessionId) : eq(chatMessages.spaceId, spaceId))
+            .all();
+        const history = allMsgs.slice(-20);
 
         // Build source map for citations
         const sourceMap = spaceContent
@@ -206,7 +217,7 @@ ${sourceRefInstructions}`;
         // Save AI response (clean version without follow-up markers)
         const aiId = generateId();
         db.insert(chatMessages)
-            .values({ id: aiId, spaceId, role: "ai", content: aiContent })
+            .values({ id: aiId, spaceId, sessionId: resolvedSessionId, role: "ai", content: aiContent })
             .run();
         const savedAi = db.select().from(chatMessages).where(eq(chatMessages.id, aiId)).get();
 

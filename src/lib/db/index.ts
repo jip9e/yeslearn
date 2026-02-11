@@ -69,9 +69,17 @@ function initTables(sqlite: Database.Database) {
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
+    CREATE TABLE IF NOT EXISTS chat_sessions (
+      id TEXT PRIMARY KEY,
+      space_id TEXT NOT NULL REFERENCES spaces(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
     CREATE TABLE IF NOT EXISTS chat_messages (
       id TEXT PRIMARY KEY,
       space_id TEXT NOT NULL REFERENCES spaces(id) ON DELETE CASCADE,
+      session_id TEXT REFERENCES chat_sessions(id) ON DELETE CASCADE,
       role TEXT NOT NULL,
       content TEXT NOT NULL,
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
@@ -113,4 +121,15 @@ function initTables(sqlite: Database.Database) {
     };
     addColumnIfMissing("quiz_questions", "correct_indices", "TEXT");
     addColumnIfMissing("quiz_questions", "quiz_mode", "TEXT", "'qcu'");
+    addColumnIfMissing("chat_messages", "session_id", "TEXT");
+
+    // Ensure chat_sessions table exists (for existing DBs)
+    sqlite.exec(`
+      CREATE TABLE IF NOT EXISTS chat_sessions (
+        id TEXT PRIMARY KEY,
+        space_id TEXT NOT NULL REFERENCES spaces(id) ON DELETE CASCADE,
+        name TEXT NOT NULL,
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+    `);
 }

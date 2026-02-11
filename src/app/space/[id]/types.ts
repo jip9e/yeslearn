@@ -42,6 +42,7 @@ export interface SpaceData {
   description: string;
   contentItems: ContentItem[];
   chatMessages: ChatMessage[];
+  chatSessions: ChatSession[];
   summaries: Summary[];
   quizQuestions: QuizQuestion[];
 }

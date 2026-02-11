@@ -27,16 +27,19 @@ export function SelectionToolbar({ position, text, onAction, onClose }: Selectio
     }, 1200);
   };
 
+  // position.y is the top of the selection (viewport coords from getBoundingClientRect)
   const toolbarHeight = 44;
   const gap = 12;
-  const rawY = position.y - toolbarHeight - gap;
+  // Try to place above the selection; if not enough room, place below
+  const above = position.y - toolbarHeight - gap;
   const clampedX = Math.max(8, Math.min(position.x, window.innerWidth - 420));
-  const clampedY = Math.max(8, rawY);
+  const clampedY = above >= 8 ? above : position.y + gap + 24; // below the selection if no room above
 
   return (
     <div
-      className="fixed z-50 flex items-center gap-0.5 bg-popover backdrop-blur-xl rounded-full shadow-2xl border border-border px-2 py-1.5 animate-in fade-in zoom-in-95 duration-200"
-      style={{ left: clampedX, top: clampedY }}
+      className="fixed z-[60] flex items-center gap-0.5 bg-popover backdrop-blur-xl rounded-full shadow-2xl border border-border px-2 py-1.5 animate-in fade-in zoom-in-95 duration-200 select-none"
+      style={{ left: clampedX, top: clampedY, WebkitTouchCallout: "none" }}
+      onPointerDown={(e) => e.preventDefault()}
     >
       <button
         onClick={handleCopy}

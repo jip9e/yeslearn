@@ -13,6 +13,11 @@ import { ExplainPanel } from "./components/ExplainPanel";
 import { PracticePanel } from "./components/PracticePanel";
 import { LearnPanel } from "./components/LearnPanel";
 
+let chatIdCounter = 0;
+function nextChatId() {
+  return `chat-${Date.now()}-${++chatIdCounter}`;
+}
+
 export default function SpaceDetailPage() {
   const params = useParams();
   const spaceId = params.id as string;
@@ -82,32 +87,63 @@ export default function SpaceDetailPage() {
 
   /* text selection handler */
   const handleTextSelection = useCallback(() => {
+    // Small delay to let the selection finalize (especially on touch)
+    setTimeout(() => {
+      const sel = window.getSelection();
+      const text = sel?.toString().trim();
+      if (text && text.length > 2 && contentRef.current?.contains(sel?.anchorNode || null)) {
+        const range = sel!.getRangeAt(0);
+        const rect = range.getBoundingClientRect();
+        setSelectionToolbar({
+          x: rect.left + rect.width / 2 - 140,
+          y: rect.top,
+          text,
+        });
+      } else if (!text) {
+        setSelectionToolbar(null);
+      }
+    }, 10);
+  }, []);
+
+  // Dismiss toolbar when selection is fully cleared (not during active selection)
+  const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const handleSelectionChange = useCallback(() => {
     const sel = window.getSelection();
     const text = sel?.toString().trim();
-    if (text && text.length > 2 && contentRef.current?.contains(sel?.anchorNode || null)) {
-      const range = sel!.getRangeAt(0);
-      const rect = range.getBoundingClientRect();
-      setSelectionToolbar({
-        x: rect.left + rect.width / 2 - 140,
-        y: rect.top + window.scrollY - 60,
-        text,
-      });
+    if (!text || text.length < 3) {
+      // Delay dismissal to avoid flickering during touch selection
+      if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current);
+      dismissTimerRef.current = setTimeout(() => {
+        const latestSel = window.getSelection();
+        const latestText = latestSel?.toString().trim();
+        if (!latestText || latestText.length < 3) {
+          setSelectionToolbar(null);
+        }
+      }, 300);
     } else {
-      setTimeout(() => setSelectionToolbar(null), 200);
+      if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current);
     }
   }, []);
 
   useEffect(() => {
+    // mouseup for desktop, touchend for touch devices
     document.addEventListener("mouseup", handleTextSelection);
-    return () => document.removeEventListener("mouseup", handleTextSelection);
-  }, [handleTextSelection]);
+    document.addEventListener("touchend", handleTextSelection);
+    document.addEventListener("selectionchange", handleSelectionChange);
+    return () => {
+      document.removeEventListener("mouseup", handleTextSelection);
+      document.removeEventListener("touchend", handleTextSelection);
+      document.removeEventListener("selectionchange", handleSelectionChange);
+    };
+  }, [handleTextSelection, handleSelectionChange]);
 
   /* ── Handlers ────────────────────────────────────────── */
 
-  const handleSendMessage = async (overrideInput?: string) => {
+  const handleSendMessage = async (overrideInput?: string, explicitQuote?: string) => {
     const input = overrideInput ?? chatInput;
     if (!input.trim() || sendingChat) return;
-    const userMsg = quotedText ? `> ${quotedText}\n\n${input}` : input;
+    const quote = explicitQuote !== undefined ? explicitQuote : quotedText;
+    const userMsg = quote ? `> ${quote}\n\n${input}` : input;
     setChatInput("");
     setQuotedText(null);
     setSendingChat(true);
@@ -117,7 +153,7 @@ export default function SpaceDetailPage() {
 
     let sessionId = activeChatId;
     if (!sessionId) {
-      sessionId = `chat-${Date.now()}`;
+      sessionId = nextChatId();
       const sessionName = input.slice(0, 40) + (input.length > 40 ? "..." : "");
       const newSession: ChatSession = { id: sessionId, name: sessionName, messages: [], createdAt: new Date().toISOString() };
       setChatSessions(prev => [...prev, newSession]);
@@ -160,7 +196,7 @@ export default function SpaceDetailPage() {
     setQuotedText(text);
     setFollowUps([]);
 
-    const sessionId = `chat-${Date.now()}`;
+    const sessionId = nextChatId();
     const actionLabels: Record<string, string> = {
       explain: "Explain: " + text.slice(0, 30) + "...",
       summarize: "Summarize: " + text.slice(0, 30) + "...",
@@ -174,9 +210,9 @@ export default function SpaceDetailPage() {
     setMessages([]);
     setRightPanelTab("chat");
 
-    if (action === "explain") handleSendMessage("Explain this concept in detail:");
-    else if (action === "summarize") handleSendMessage("Summarize this in simple terms:");
-    else if (action === "quiz") handleSendMessage("Create a quick quiz question about this:");
+    if (action === "explain") handleSendMessage("Explain this concept in detail:", text);
+    else if (action === "summarize") handleSendMessage("Summarize this in simple terms:", text);
+    else if (action === "quiz") handleSendMessage("Create a quick quiz question about this:", text);
   };
 
   const openChatSession = useCallback((session: ChatSession) => {
@@ -188,7 +224,7 @@ export default function SpaceDetailPage() {
   }, []);
 
   const createNewChat = () => {
-    const sessionId = `chat-${Date.now()}`;
+    const sessionId = nextChatId();
     const newSession: ChatSession = { id: sessionId, name: "New Chat", messages: [], createdAt: new Date().toISOString() };
     setChatSessions(prev => [...prev, newSession]);
     setActiveChatId(sessionId);

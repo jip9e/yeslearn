@@ -153,7 +153,7 @@ export default function SettingsPage() {
                 tabIndex={activeTab === tab.id ? 0 : -1}
                 className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-colors text-left focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-black dark:focus-visible:ring-white ${activeTab === tab.id
                   ? "bg-background dark:bg-card border border-border text-foreground shadow-sm"
-                  : "text-muted-foreground hover:bg-white/50 dark:hover:bg-white/5 hover:text-foreground"
+                  : "text-muted-foreground hover:bg-secondary hover:text-foreground"
                   }`}
               >
                 <tab.icon size={16} aria-hidden="true" />
@@ -174,7 +174,7 @@ export default function SettingsPage() {
               <h2 className="text-[16px] font-semibold mb-6 text-foreground">Appearance</h2>
               <div>
                 <fieldset>
-                  <legend className="block text-[13px] font-medium mb-3 dark:text-muted-foreground/70">Theme</legend>
+                  <legend className="block text-[13px] font-medium mb-3 text-muted-foreground">Theme</legend>
                   <div className="grid grid-cols-3 gap-3" role="radiogroup" aria-label="Theme selection">
                     {[
                       { id: "light", label: "Light", preview: "bg-background border-border" },
@@ -191,7 +191,7 @@ export default function SettingsPage() {
                           }`}
                       >
                         <div className={`w-full h-16 rounded-lg border mb-2 ${t.preview}`} aria-hidden="true" />
-                        <p className="text-[13px] font-medium dark:text-muted-foreground/70">{t.label}</p>
+                        <p className="text-[13px] font-medium text-muted-foreground">{t.label}</p>
                       </button>
                     ))}
                   </div>

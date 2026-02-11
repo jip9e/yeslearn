@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useCallback, useRef, useEffect } from "react";
+import React, { memo, useState, useCallback, useRef, useEffect } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
@@ -50,29 +50,27 @@ function VirtualPage({
                     className="select-text"
                 />
             ) : (
-                <div className="flex items-center justify-center h-full bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
-                    <Loader2 size={20} className="animate-spin text-gray-400" />
+                <div className="flex items-center justify-center h-full bg-gradient-to-br from-zinc-50 to-zinc-100 dark:from-zinc-900 dark:to-zinc-800">
+                    <Loader2 size={20} className="animate-spin text-zinc-400" />
                 </div>
             )}
         </div>
     );
 }
 
-export default function PDFViewer({ url, title }: PDFViewerProps) {
+function PDFViewer({ url, title }: PDFViewerProps) {
     const [numPages, setNumPages] = useState<number>(0);
     const [scale, setScale] = useState(1.0);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [containerWidth, setContainerWidth] = useState<number>(0);
     const [currentPage, setCurrentPage] = useState(1);
-    const [isSelecting, setIsSelecting] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
     const pageRefs = useRef<Map<number, HTMLDivElement>>(new Map());
 
-    // ── Lock scroll while user is selecting text ─────────
-    // When a mousedown/touchstart lands on the PDF text layer we freeze
-    // the scroll container so dragging to extend the selection doesn't
-    // fight with scrolling — especially important on iPad / touch.
+    // Keep browser selection stable in PDF text layer.
+    // Important: do NOT toggle container overflow during selection,
+    // because that changes viewport width and causes react-pdf to rerender.
     useEffect(() => {
         const container = containerRef.current;
         if (!container) return;
@@ -85,42 +83,6 @@ export default function PDFViewer({ url, title }: PDFViewerProps) {
             );
         };
 
-        // Only lock scroll once a real text selection appears (not on every touch).
-        // This lets normal scroll gestures work unimpeded.
-        const lockScroll = () => {
-            if (container.style.overflow !== "hidden") {
-                container.style.overflow = "hidden";
-                container.style.touchAction = "none";
-            }
-            setIsSelecting(true);
-        };
-
-        const unlockScroll = () => {
-            if (container.style.overflow === "hidden") {
-                container.style.overflow = "auto";
-                container.style.touchAction = "";
-            }
-            setIsSelecting(false);
-        };
-
-        // Watch for actual selection forming — lock scroll only then
-        const handleSelectionChange = () => {
-            const sel = window.getSelection();
-            if (sel && !sel.isCollapsed && container.contains(sel.anchorNode)) {
-                lockScroll();
-            } else if (sel && sel.isCollapsed) {
-                unlockScroll();
-            }
-        };
-        document.addEventListener("selectionchange", handleSelectionChange);
-
-        // Unlock on mouse/touch up
-        const handleMouseUp = () => unlockScroll();
-        document.addEventListener("mouseup", handleMouseUp);
-
-        const handleTouchEnd = () => unlockScroll();
-        document.addEventListener("touchend", handleTouchEnd);
-
         // Suppress native context menu on the PDF so our custom toolbar takes over
         const suppressContextMenu = (e: Event) => {
             if (isTextLayer(e.target)) e.preventDefault();
@@ -128,9 +90,6 @@ export default function PDFViewer({ url, title }: PDFViewerProps) {
         container.addEventListener("contextmenu", suppressContextMenu);
 
         return () => {
-            document.removeEventListener("selectionchange", handleSelectionChange);
-            document.removeEventListener("mouseup", handleMouseUp);
-            document.removeEventListener("touchend", handleTouchEnd);
             container.removeEventListener("contextmenu", suppressContextMenu);
         };
     }, []);
@@ -211,18 +170,18 @@ export default function PDFViewer({ url, title }: PDFViewerProps) {
     const pageWidth = containerWidth > 0 ? Math.max((containerWidth - 48) * scale, 200) : undefined;
 
     return (
-        <div className="flex flex-col h-full bg-gradient-to-br from-gray-50 to-white dark:from-gray-950 dark:to-gray-900">
+        <div className="flex flex-col h-full bg-gradient-to-br from-zinc-50 to-white dark:from-zinc-950 dark:to-zinc-900">
             {/* Enhanced Toolbar */}
-            <div className="flex items-center justify-between px-5 py-3 bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg border-b border-gray-200 dark:border-gray-800 shrink-0 shadow-sm">
+            <div className="flex items-center justify-between px-5 py-3 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-lg border-b border-zinc-200 dark:border-zinc-800 shrink-0 shadow-sm">
                 <div className="flex items-center gap-3">
                     {numPages > 0 && (
                         <>
-                            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800">
-                                <span className="text-[13px] font-medium text-gray-700 dark:text-gray-300">
+                            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-zinc-100 dark:bg-zinc-800">
+                                <span className="text-[13px] font-medium text-zinc-700 dark:text-zinc-300">
                                     {currentPage}
                                 </span>
-                                <span className="text-[11px] text-gray-400">/</span>
-                                <span className="text-[13px] text-gray-500 dark:text-gray-400">
+                                <span className="text-[11px] text-zinc-400">/</span>
+                                <span className="text-[13px] text-zinc-500 dark:text-zinc-400">
                                     {numPages}
                                 </span>
                             </div>
@@ -230,16 +189,18 @@ export default function PDFViewer({ url, title }: PDFViewerProps) {
                                 <button
                                     onClick={prevPage}
                                     disabled={currentPage === 1}
-                                    className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-all text-gray-600 dark:text-gray-400 disabled:opacity-30 disabled:cursor-not-allowed"
+                                    className="p-1.5 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all text-zinc-600 dark:text-zinc-400 disabled:opacity-30 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-black dark:focus-visible:ring-white"
                                     title="Previous page"
+                                    aria-label="Previous page"
                                 >
                                     <ChevronLeft size={16} />
                                 </button>
                                 <button
                                     onClick={nextPage}
                                     disabled={currentPage === numPages}
-                                    className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-all text-gray-600 dark:text-gray-400 disabled:opacity-30 disabled:cursor-not-allowed"
+                                    className="p-1.5 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all text-zinc-600 dark:text-zinc-400 disabled:opacity-30 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-black dark:focus-visible:ring-white"
                                     title="Next page"
+                                    aria-label="Next page"
                                 >
                                     <ChevronRight size={16} />
                                 </button>
@@ -250,28 +211,31 @@ export default function PDFViewer({ url, title }: PDFViewerProps) {
                 <div className="flex items-center gap-1.5">
                     <button
                         onClick={zoomOut}
-                        className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-all text-gray-600 dark:text-gray-400"
+                        className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all text-zinc-600 dark:text-zinc-400 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-black dark:focus-visible:ring-white"
                         title="Zoom out"
+                        aria-label="Zoom out"
                     >
                         <ZoomOut size={16} />
                     </button>
-                    <div className="px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 min-w-[50px] text-center">
-                        <span className="text-[12px] font-medium text-gray-700 dark:text-gray-300">
+                    <div className="px-3 py-1.5 rounded-lg bg-zinc-100 dark:bg-zinc-800 min-w-[50px] text-center">
+                        <span className="text-[12px] font-medium text-zinc-700 dark:text-zinc-300">
                             {Math.round(scale * 100)}%
                         </span>
                     </div>
                     <button
                         onClick={zoomIn}
-                        className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-all text-gray-600 dark:text-gray-400"
+                        className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all text-zinc-600 dark:text-zinc-400 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-black dark:focus-visible:ring-white"
                         title="Zoom in"
+                        aria-label="Zoom in"
                     >
                         <ZoomIn size={16} />
                     </button>
-                    <div className="w-px h-5 bg-gray-300 dark:bg-gray-700 mx-1" />
+                    <div className="w-px h-5 bg-zinc-300 dark:bg-zinc-700 mx-1" />
                     <button
                         onClick={resetZoom}
-                        className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-all text-gray-600 dark:text-gray-400"
+                        className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all text-zinc-600 dark:text-zinc-400 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-black dark:focus-visible:ring-white"
                         title="Reset zoom"
+                        aria-label="Reset zoom"
                     >
                         <RotateCcw size={15} />
                     </button>
@@ -281,24 +245,24 @@ export default function PDFViewer({ url, title }: PDFViewerProps) {
             {/* PDF Pages with Virtual Scrolling */}
             <div 
                 ref={containerRef} 
-                className="flex-1 overflow-auto bg-gradient-to-br from-[#f5f7fa] to-[#e8ebf0] dark:from-gray-950 dark:to-gray-900"
+                className="flex-1 overflow-auto bg-gradient-to-br from-[#f5f7fa] to-[#e8ebf0] dark:from-zinc-950 dark:to-zinc-900"
             >
                 {loading && (
                     <div className="flex flex-col items-center justify-center py-32 gap-3">
-                        <Loader2 size={32} className="animate-spin text-gray-400" />
-                        <p className="text-[13px] text-gray-500">Loading PDF...</p>
+                        <Loader2 size={32} className="animate-spin text-zinc-400" />
+                        <p className="text-[13px] text-zinc-500">Loading PDF...</p>
                     </div>
                 )}
 
                 {error && (
-                    <div className="flex flex-col items-center justify-center py-32 text-gray-500">
+                    <div className="flex flex-col items-center justify-center py-32 text-zinc-500">
                         <div className="w-16 h-16 rounded-full bg-red-50 dark:bg-red-900/20 flex items-center justify-center mb-4">
                             <svg className="w-8 h-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                             </svg>
                         </div>
                         <p className="text-[15px] font-medium mb-1">Could not load PDF</p>
-                        <p className="text-[13px] text-gray-400">{error}</p>
+                        <p className="text-[13px] text-zinc-400">{error}</p>
                     </div>
                 )}
 
@@ -332,3 +296,8 @@ export default function PDFViewer({ url, title }: PDFViewerProps) {
         </div>
     );
 }
+
+const MemoizedPDFViewer = memo(PDFViewer);
+MemoizedPDFViewer.displayName = "PDFViewer";
+
+export default MemoizedPDFViewer;

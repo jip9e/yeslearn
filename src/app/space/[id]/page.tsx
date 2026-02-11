@@ -1,242 +1,27 @@
 "use client";
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import Link from "next/link";
 import { useParams } from "next/navigation";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import dynamic from "next/dynamic";
+import { Loader2, Command as CommandIcon } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
-const PDFViewer = dynamic(() => import("@/components/PDFViewer"), { ssr: false });
-import {
-  ArrowLeft,
-  Plus,
-  Send,
-  FileText,
-  Youtube,
-  Globe,
-  Mic,
-  MessageSquare,
-  BookOpen,
-  Brain,
-  Headphones,
-  Trash2,
-  Search,
-  Sparkles,
-  Loader2,
-  Copy,
-  Check,
-  ThumbsUp,
-  ThumbsDown,
-  CheckCircle2,
-  XCircle,
-  RotateCcw,
-  GraduationCap,
-  PanelLeftClose,
-  PanelLeftOpen,
-  X,
-  Lightbulb,
-  Maximize2,
-  Minimize2,
-  Hash,
-  ChevronRight,
-  ExternalLink,
-} from "lucide-react";
-
-/* ────────────────────────── Types ────────────────────────── */
-
-interface ContentItem {
-  id: string;
-  name: string;
-  type: string;
-  sourceUrl?: string;
-  extractedText?: string;
-  metadata?: string;
-  createdAt: string;
-}
-
-interface ChatMessage {
-  id: string;
-  role: "user" | "ai";
-  content: string;
-  createdAt: string;
-  sources?: { index: number; name: string }[];
-  followUpQuestions?: string[];
-}
-
-interface Summary {
-  id: string;
-  title: string;
-  content: string;
-}
-
-interface QuizQuestion {
-  id: string;
-  question: string;
-  options: string[];
-  correctIndex: number;
-}
-
-interface SpaceData {
-  id: string;
-  name: string;
-  icon: string;
-  color: string;
-  description: string;
-  contentItems: ContentItem[];
-  chatMessages: ChatMessage[];
-  summaries: Summary[];
-  quizQuestions: QuizQuestion[];
-}
-
-type AIPanelTab = "learn" | "chat";
-
-interface ChatSession {
-  id: string;
-  name: string;
-  messages: ChatMessage[];
-  createdAt: string;
-}
-
-/* ────────────────────────── Helpers ─────────────────────── */
-
-const TYPE_ICONS: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
-  youtube: Youtube,
-  pdf: FileText,
-  website: Globe,
-  audio: Mic,
-  text: FileText,
-};
-
-function timeAgo(dateStr: string): string {
-  const now = new Date();
-  const date = new Date(dateStr);
-  const diff = Math.floor((now.getTime() - date.getTime()) / 1000);
-  if (diff < 60) return "Just now";
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-  if (diff < 604800) return `${Math.floor(diff / 86400)}d ago`;
-  return date.toLocaleDateString();
-}
-
-function getYoutubeEmbedUrl(sourceUrl: string): string | null {
-  try {
-    const url = new URL(sourceUrl);
-    let videoId = "";
-    if (url.hostname.includes("youtube.com")) {
-      videoId = url.searchParams.get("v") || "";
-    } else if (url.hostname.includes("youtu.be")) {
-      videoId = url.pathname.slice(1);
-    }
-    return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
-  } catch {
-    return null;
-  }
-}
-
-/* ──────────────── CopyButton ────────────────── */
-
-function CopyButton({ text }: { text: string }) {
-  const [copied, setCopied] = useState(false);
-  const handleCopy = () => {
-    navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-  return (
-    <button onClick={handleCopy} className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 transition-colors" title="Copy" aria-label="Copy message">
-      {copied ? <Check size={13} className="text-green-500" /> : <Copy size={13} className="text-[#999]" />}
-    </button>
-  );
-}
-
-/* ──────────────── ToolCard ──────────────────── */
-
-function ToolCard({ icon, label, color, onClick, loading, description }: {
-  icon: React.ReactNode; label: string; color: string; onClick: () => void; loading?: boolean; description?: string;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      disabled={loading}
-      className="group flex items-center gap-3 p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 hover:bg-gradient-to-br hover:from-gray-50 hover:to-white dark:hover:from-gray-800 dark:hover:to-gray-900 hover:border-gray-300 dark:hover:border-gray-700 transition-all duration-300 hover:shadow-lg active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-black dark:focus-visible:ring-white"
-    >
-      <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-gradient-to-br from-gray-100 to-gray-50 dark:from-gray-800 dark:to-gray-900 group-hover:scale-110 transition-transform shadow-sm">
-        {loading ? (
-          <Loader2 size={18} className="animate-spin text-gray-600 dark:text-gray-400" />
-        ) : (
-          <span className="text-gray-700 dark:text-gray-300">{icon}</span>
-        )}
-      </div>
-      <div className="text-left min-w-0 flex-1">
-        <span className="text-[14px] font-medium text-gray-900 dark:text-white block">{label}</span>
-        {description && <span className="text-[12px] text-gray-500 dark:text-gray-400 block mt-0.5">{description}</span>}
-      </div>
-    </button>
-  );
-}
-
-/* ──────────── Selection Toolbar ──────────────── */
-
-function SelectionToolbar({ position, text, onAction, onClose }: {
-  position: { x: number; y: number };
-  text: string;
-  onAction: (action: string, text: string) => void;
-  onClose: () => void;
-}) {
-  const [copied, setCopied] = useState(false);
-  const actions = [
-    { id: "explain", label: "Explain", icon: <Lightbulb size={13} /> },
-    { id: "summarize", label: "Summarize", icon: <FileText size={13} /> },
-    { id: "chat", label: "Chat", icon: <MessageSquare size={13} /> },
-    { id: "quiz", label: "Quiz", icon: <Brain size={13} /> },
-  ];
-
-  const handleCopy = () => {
-    navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => { setCopied(false); onClose(); }, 1200);
-  };
-
-  // Clamp position within viewport — place well above selection so it doesn't block extending it
-  const toolbarHeight = 44;
-  const gap = 12;
-  const rawY = position.y - toolbarHeight - gap;
-  const clampedX = Math.max(8, Math.min(position.x, window.innerWidth - 420));
-  const clampedY = Math.max(8, rawY);
-
-  return (
-    <div
-      className="fixed z-50 flex items-center gap-0.5 bg-white/95 dark:bg-[#1a1a1a]/95 backdrop-blur-lg rounded-2xl shadow-2xl border border-[#e0e0e0] dark:border-[#333] px-2 py-1.5 animate-in fade-in zoom-in-95 duration-150"
-      style={{ left: clampedX, top: clampedY }}
-    >
-      <button
-        onClick={handleCopy}
-        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] font-medium text-[#555] dark:text-[#aaa] hover:bg-[#f0f0f0] dark:hover:bg-[#222] hover:text-black dark:hover:text-white transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-black dark:focus-visible:ring-white"
-      >
-        {copied ? <Check size={13} className="text-green-500" /> : <Copy size={13} />}
-        {copied ? "Copied" : "Copy"}
-      </button>
-      <div className="w-px h-4 bg-[#e5e5e5] dark:bg-[#333]" />
-      {actions.map((a) => (
-        <button
-          key={a.id}
-          onClick={() => { onAction(a.id, text); onClose(); }}
-          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] font-medium text-[#555] dark:text-[#aaa] hover:bg-[#f0f0f0] dark:hover:bg-[#222] hover:text-black dark:hover:text-white transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-black dark:focus-visible:ring-white"
-        >
-          {a.icon} {a.label}
-        </button>
-      ))}
-    </div>
-  );
-}
-
-/* ════════════════════════ MAIN ═══════════════════════════ */
+import { SpaceData, ChatMessage, ChatSession, AIPanelTab } from "./types";
+import { SelectionToolbar } from "./components/SelectionToolbar";
+import { SourceViewer } from "./components/SourceViewer";
+import { AIPanel } from "./components/AIPanel";
+import { ChatSection } from "./components/ChatSection";
+import { CommandCenter } from "./components/CommandCenter";
+import { ContentRail } from "./components/ContentRail";
+import { ExplainPanel } from "./components/ExplainPanel";
+import { PracticePanel } from "./components/PracticePanel";
+import { StudyStack } from "./components/StudyStack";
 
 export default function SpaceDetailPage() {
   const params = useParams();
   const spaceId = params.id as string;
   const chatEndRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
+
+  type FocusTab = "content" | "explain" | "practice";
 
   /* state */
   const [space, setSpace] = useState<SpaceData | null>(null);
@@ -247,51 +32,35 @@ export default function SpaceDetailPage() {
   const [quizAnswers, setQuizAnswers] = useState<Record<number, number>>({});
   const [quizSubmitted, setQuizSubmitted] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [deleting, setDeleting] = useState<string | null>(null);
   const [sendingChat, setSendingChat] = useState(false);
   const [generatingSummary, setGeneratingSummary] = useState(false);
   const [generatingQuiz, setGeneratingQuiz] = useState(false);
-  const [quizCount, setQuizCount] = useState(5);
+  const [quizCount] = useState(5);
+  const [focusTab, setFocusTab] = useState<FocusTab>("content");
 
   const [aiPanelOpen, setAIPanelOpen] = useState(true);
-  const [aiPanelTab, setAIPanelTab] = useState<AIPanelTab>("learn");
-  const [selectedText, setSelectedText] = useState("");
+  const [aiPanelTab, setAIPanelTab] = useState<AIPanelTab>("chat");
   const [selectionToolbar, setSelectionToolbar] = useState<{ x: number; y: number; text: string } | null>(null);
   const [quotedText, setQuotedText] = useState<string | null>(null);
-  const [showMentions, setShowMentions] = useState(false);
-  const [mentionResults, setMentionResults] = useState<ContentItem[]>([]);
   const [learnPanelError, setLearnPanelError] = useState<string | null>(null);
-
-  const tabListRef = useRef<HTMLDivElement>(null);
+  const [isCommandCenterOpen, setIsCommandCenterOpen] = useState(false);
 
   // Chat sessions
   const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const [followUps, setFollowUps] = useState<string[]>([]);
 
-  // Resizable panel state
+  // AIPanel Width
   const [aiPanelWidth, setAiPanelWidth] = useState(420);
-  const [isDragging, setIsDragging] = useState(false);
-  const dragRef = useRef<{ startX: number; startWidth: number } | null>(null);
-  const mainContainerRef = useRef<HTMLDivElement>(null);
 
-  // Responsive: detect phone screens (not tablets)
+  // Responsive: detect phone screens
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 600);
+    const check = () => setIsMobile(window.innerWidth < 768);
     check();
     window.addEventListener("resize", check);
     return () => window.removeEventListener("resize", check);
   }, []);
-
-  /* scroll chat */
-  const scrollToBottom = useCallback(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, []);
-
-  useEffect(() => {
-    if (aiPanelTab === "chat") scrollToBottom();
-  }, [messages, aiPanelTab, scrollToBottom]);
 
   /* fetch space */
   useEffect(() => {
@@ -313,7 +82,7 @@ export default function SpaceDetailPage() {
       .finally(() => setLoading(false));
   }, [spaceId]);
 
-  /* text selection handler — works for mouse and touch */
+  /* text selection handler */
   const handleTextSelection = useCallback(() => {
     const sel = window.getSelection();
     const text = sel?.toString().trim();
@@ -322,82 +91,20 @@ export default function SpaceDetailPage() {
       const rect = range.getBoundingClientRect();
       setSelectionToolbar({
         x: rect.left + rect.width / 2 - 140,
-        y: rect.top + window.scrollY,
+        y: rect.top + window.scrollY - 60,
         text,
       });
-      setSelectedText(text);
     } else {
-      // delay to allow button click to register
       setTimeout(() => setSelectionToolbar(null), 200);
     }
   }, []);
 
   useEffect(() => {
     document.addEventListener("mouseup", handleTextSelection);
-    // Touch support: selectionchange fires after long-press selection on mobile
-    let touchTimer: ReturnType<typeof setTimeout> | null = null;
-    const handleSelectionChange = () => {
-      if (touchTimer) clearTimeout(touchTimer);
-      touchTimer = setTimeout(handleTextSelection, 300);
-    };
-    document.addEventListener("selectionchange", handleSelectionChange);
-    return () => {
-      document.removeEventListener("mouseup", handleTextSelection);
-      document.removeEventListener("selectionchange", handleSelectionChange);
-      if (touchTimer) clearTimeout(touchTimer);
-    };
+    return () => document.removeEventListener("mouseup", handleTextSelection);
   }, [handleTextSelection]);
 
-  /* ── Resize drag handlers ────────────────────────────── */
-  const handleResizeStart = useCallback((e: React.MouseEvent | React.TouchEvent) => {
-    e.preventDefault();
-    const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
-    dragRef.current = { startX: clientX, startWidth: aiPanelWidth };
-    // Set initial CSS variable so panel doesn't jump
-    mainContainerRef.current?.style.setProperty("--ai-panel-w", `${aiPanelWidth}px`);
-    setIsDragging(true);
-  }, [aiPanelWidth]);
-
-  useEffect(() => {
-    if (!isDragging) return;
-
-    const handleMove = (e: MouseEvent | TouchEvent) => {
-      if (!dragRef.current) return;
-      e.preventDefault();
-      const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
-      const delta = dragRef.current.startX - clientX;
-      const containerW = mainContainerRef.current?.offsetWidth || 1200;
-      const minW = 280;
-      const maxW = Math.min(containerW * 0.7, 800);
-      const newW = Math.max(minW, Math.min(maxW, dragRef.current.startWidth + delta));
-      // Update via CSS variable — no React re-render during drag
-      mainContainerRef.current?.style.setProperty("--ai-panel-w", `${newW}px`);
-    };
-
-    const handleEnd = () => {
-      // Commit final width to React state
-      const cssW = mainContainerRef.current?.style.getPropertyValue("--ai-panel-w");
-      if (cssW) {
-        setAiPanelWidth(parseInt(cssW, 10));
-        mainContainerRef.current?.style.removeProperty("--ai-panel-w");
-      }
-      setIsDragging(false);
-      dragRef.current = null;
-    };
-
-    document.addEventListener("mousemove", handleMove, { passive: false });
-    document.addEventListener("mouseup", handleEnd);
-    document.addEventListener("touchmove", handleMove, { passive: false });
-    document.addEventListener("touchend", handleEnd);
-    return () => {
-      document.removeEventListener("mousemove", handleMove);
-      document.removeEventListener("mouseup", handleEnd);
-      document.removeEventListener("touchmove", handleMove);
-      document.removeEventListener("touchend", handleEnd);
-    };
-  }, [isDragging]);
-
-  /* ── handlers ─────────────────────────────────────────── */
+  /* ── Handlers ────────────────────────────────────────── */
 
   const handleSendMessage = async (overrideInput?: string) => {
     const input = overrideInput ?? chatInput;
@@ -407,11 +114,9 @@ export default function SpaceDetailPage() {
     setQuotedText(null);
     setSendingChat(true);
     setFollowUps([]);
-
-    // Auto-switch to chat tab
     setAIPanelTab("chat");
+    setAIPanelOpen(true);
 
-    // Create or use active chat session
     let sessionId = activeChatId;
     if (!sessionId) {
       sessionId = `chat-${Date.now()}`;
@@ -425,9 +130,6 @@ export default function SpaceDetailPage() {
       const tempUserMsg: ChatMessage = { id: "temp-user", role: "user", content: userMsg, createdAt: new Date().toISOString() };
       setMessages((prev) => [...prev, tempUserMsg]);
 
-      // Also update session
-      setChatSessions(prev => prev.map(s => s.id === sessionId ? { ...s, messages: [...s.messages, tempUserMsg] } : s));
-
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -436,7 +138,6 @@ export default function SpaceDetailPage() {
       const data = await res.json();
 
       if (data.userMessage && data.aiMessage) {
-        // Attach sources and follow-ups to AI message
         const aiMsg: ChatMessage = {
           ...data.aiMessage,
           sources: data.sources || [],
@@ -448,8 +149,6 @@ export default function SpaceDetailPage() {
           return newMsgs;
         });
         setFollowUps(data.followUpQuestions || []);
-      } else {
-        setMessages((prev) => [...prev.filter((m) => m.id !== "temp-user"), data]);
       }
     } catch {
       setMessages((prev) => prev.filter((m) => m.id !== "temp-user"));
@@ -463,7 +162,6 @@ export default function SpaceDetailPage() {
     setQuotedText(text);
     setFollowUps([]);
 
-    // Create a new chat session for the action
     const sessionId = `chat-${Date.now()}`;
     const actionLabels: Record<string, string> = {
       explain: "Explain: " + text.slice(0, 30) + "...",
@@ -478,15 +176,9 @@ export default function SpaceDetailPage() {
     setMessages([]);
     setAIPanelTab("chat");
 
-    if (action === "explain") {
-      setChatInput("Explain this concept in detail:");
-    } else if (action === "summarize") {
-      setChatInput("Summarize this in simple terms:");
-    } else if (action === "quiz") {
-      setChatInput("Create a quick quiz question about this:");
-    } else {
-      setChatInput("");
-    }
+    if (action === "explain") handleSendMessage("Explain this concept in detail:");
+    else if (action === "summarize") handleSendMessage("Summarize this in simple terms:");
+    else if (action === "quiz") handleSendMessage("Create a quick quiz question about this:");
   };
 
   const openChatSession = useCallback((session: ChatSession) => {
@@ -494,38 +186,18 @@ export default function SpaceDetailPage() {
     setActiveChatId(session.id);
     setMessages(session.messages);
     setFollowUps(session.messages.length > 0 ? (session.messages[session.messages.length - 1].followUpQuestions || []) : []);
+    setAIPanelOpen(true);
   }, []);
 
-  const handleTablistKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
-    const tablist = tabListRef.current;
-    if (!tablist) return;
-
-    const tabs = Array.from(tablist.querySelectorAll<HTMLElement>("[role='tab']"));
-    if (tabs.length === 0) return;
-
-    const currentIndex = tabs.findIndex((tab) => tab === document.activeElement);
-    if (currentIndex < 0) return;
-
-    const focusAndActivate = (index: number) => {
-      const nextTab = tabs[index];
-      if (!nextTab) return;
-      nextTab.focus();
-      nextTab.click();
-    };
-
-    if (e.key === "ArrowRight") {
-      e.preventDefault();
-      focusAndActivate((currentIndex + 1) % tabs.length);
-    } else if (e.key === "ArrowLeft") {
-      e.preventDefault();
-      focusAndActivate((currentIndex - 1 + tabs.length) % tabs.length);
-    } else if (e.key === "Home") {
-      e.preventDefault();
-      focusAndActivate(0);
-    } else if (e.key === "End") {
-      e.preventDefault();
-      focusAndActivate(tabs.length - 1);
-    }
+  const createNewChat = () => {
+    const sessionId = `chat-${Date.now()}`;
+    const newSession: ChatSession = { id: sessionId, name: "New Chat", messages: [], createdAt: new Date().toISOString() };
+    setChatSessions(prev => [...prev, newSession]);
+    setActiveChatId(sessionId);
+    setMessages([]);
+    setFollowUps([]);
+    setAIPanelTab("chat");
+    setAIPanelOpen(true);
   };
 
   const handleGenerateSummary = async () => {
@@ -555,7 +227,7 @@ export default function SpaceDetailPage() {
       const res = await fetch("/api/quiz", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ spaceId, questionCount: quizCount }) });
       const data = await res.json();
       if (data.questions && space) {
-        const parsed = data.questions.map((q: { id: string; question: string; options: string | string[]; correctIndex: number }) => ({
+        const parsed = data.questions.map((q: any) => ({
           ...q, options: typeof q.options === "string" ? JSON.parse(q.options) : q.options,
         }));
         setSpace({ ...space, quizQuestions: parsed });
@@ -564,887 +236,177 @@ export default function SpaceDetailPage() {
       }
     } catch {
       setLearnPanelError("Failed to generate quiz.");
-    }
-    finally { setGeneratingQuiz(false); }
+    } finally { setGeneratingQuiz(false); }
   };
-
-  const handleDeleteContent = async (contentId: string, contentName: string) => {
-    const confirmed = window.confirm(`Delete "${contentName}"? This cannot be undone.`);
-    if (!confirmed) return;
-
-    setDeleting(contentId);
-    try {
-      await fetch(`/api/content/${contentId}`, { method: "DELETE" });
-      setSpace((prev) => prev ? { ...prev, contentItems: prev.contentItems.filter((c) => c.id !== contentId) } : null);
-      if (selectedContent === contentId) setSelectedContent(space?.contentItems.find((c) => c.id !== contentId)?.id || null);
-    } finally { setDeleting(null); }
-  };
-
-  const getTypeIcon = (type: string) => {
-    switch (type) {
-      case "youtube": return <Youtube size={14} />;
-      case "pdf": return <FileText size={14} />;
-      case "website": return <Globe size={14} />;
-      case "audio": return <Mic size={14} />;
-      default: return <FileText size={14} />;
-    }
-  };
-
-  /* ── Loading / Not Found ──────────────────────────────── */
 
   if (loading) {
-    return <div className="h-full flex items-center justify-center bg-[#fafafa] dark:bg-[#0a0a0a]" role="status" aria-label="Loading space"><Loader2 size={24} className="animate-spin text-[#999]" /></div>;
+    return <div className="h-screen flex items-center justify-center bg-black text-zinc-500"><Loader2 size={24} className="animate-spin" /></div>;
   }
 
-  if (!space) {
-    return (
-      <div className="h-full flex flex-col items-center justify-center gap-3 bg-[#fafafa] dark:bg-[#0a0a0a]" role="alert">
-        <p className="text-[16px] font-medium">Space not found</p>
-        <Link href="/dashboard" className="text-[13px] text-[#999] hover:text-black dark:hover:text-white">← Back to Dashboard</Link>
-      </div>
-    );
-  }
+  if (!space) return null;
 
-  const selectedItem = space.contentItems.find((c) => c.id === selectedContent);
-  const filteredItems = space.contentItems.filter((c) => c.name.toLowerCase().includes(searchQuery.toLowerCase()));
-  const quizScore = (space.quizQuestions || []).filter((q, i) => quizAnswers[i] === q.correctIndex).length;
-  const quizTotal = (space.quizQuestions || []).length;
-  const quizPercent = quizTotal > 0 ? Math.round((quizScore / quizTotal) * 100) : 0;
-
-  /* ════════════════════════ RENDER ══════════════════════ */
+  const selectedItem = space.contentItems.find((c) => c.id === selectedContent) || null;
+  const summariesReady = Boolean(space.summaries && space.summaries.length > 0);
+  const quizReady = Boolean(space.quizQuestions && space.quizQuestions.length > 0);
 
   return (
-    <div className="h-full flex bg-white dark:bg-[#0a0a0a]" ref={mainContainerRef}>
+    <div className="flex h-screen w-screen bg-zinc-950 text-zinc-100">
+      <CommandCenter 
+        isOpen={isCommandCenterOpen}
+        setIsOpen={setIsCommandCenterOpen}
+        sources={space.contentItems}
+        onSelectSource={(id) => {
+          setSelectedContent(id);
+          setFocusTab("content");
+        }}
+        onAction={(action) => {
+          if (action === "chat") {
+            setAIPanelTab("chat");
+            setAIPanelOpen(true);
+          } else if (action === "learn") {
+            setFocusTab("explain");
+          }
+        }}
+      />
 
-        {/* ═══ Selection Toolbar (floating) ═══ */}
-        {selectionToolbar && (
-          <SelectionToolbar
-            position={{ x: selectionToolbar.x, y: selectionToolbar.y }}
-            text={selectionToolbar.text}
-            onAction={handleSelectionAction}
-            onClose={() => setSelectionToolbar(null)}
-          />
-        )}
+      {selectionToolbar && (
+        <SelectionToolbar
+          position={{ x: selectionToolbar.x, y: selectionToolbar.y }}
+          text={selectionToolbar.text}
+          onAction={handleSelectionAction}
+          onClose={() => setSelectionToolbar(null)}
+        />
+      )}
 
-        {/* ═══ MAIN CONTENT AREA ═══ */}
-        <div className={`flex-1 overflow-hidden bg-white dark:bg-[#0a0a0a] flex flex-col${isDragging ? "" : " transition-all duration-300"}`} ref={contentRef} style={isDragging ? { pointerEvents: "none" } : undefined}>
-          {selectedItem ? (
-            <>
-              {/* Compact content header */}
-              <div className="flex items-center justify-between px-4 py-2 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-[#0a0a0a] shrink-0">
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setSelectedContent(null)}
-                    className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-all text-gray-500 dark:text-gray-400"
-                    title="Back to content list"
-                    aria-label="Back to content list"
-                  >
-                    <ArrowLeft size={16} />
-                  </button>
-                  <span className="text-[13px] text-gray-500 dark:text-gray-400">{getTypeIcon(selectedItem.type)}</span>
-                  <h2 className="text-[13px] font-medium text-gray-900 dark:text-white truncate">{selectedItem.name}</h2>
-                </div>
-                <div className="flex items-center gap-1">
-                  <Link
-                    href={`/dashboard/add?spaceId=${space.id}`}
-                    className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-all text-gray-500 dark:text-gray-400"
-                    title="Add Content"
-                    aria-label="Add content"
-                  >
-                    <Plus size={16} />
-                  </Link>
-                  <button 
-                    onClick={() => handleDeleteContent(selectedItem.id, selectedItem.name)} 
-                    disabled={deleting === selectedItem.id} 
-                    className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-all text-gray-500 dark:text-gray-400"
-                    aria-label={`Delete ${selectedItem.name}`}
-                  >
-                    {deleting === selectedItem.id ? (
-                      <Loader2 size={16} className="animate-spin" />
-                    ) : (
-                      <Trash2 size={16} />
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              {/* PDF Viewer — custom react-pdf renderer with text selection */}
-              {selectedItem.type === "pdf" && (
-                <div className="flex-1 min-h-0">
-                  <PDFViewer
-                    url={`/api/content/${selectedItem.id}/file`}
-                    title={selectedItem.name}
-                  />
-                </div>
-              )}
-
-              {/* YouTube Embed with enhanced transcript view */}
-              {selectedItem.type === "youtube" && selectedItem.sourceUrl && (
-                <div className="flex-1 flex flex-col overflow-hidden">
-                  {/* Video player */}
-                  <div className="aspect-video w-full bg-black shrink-0">
-                    {getYoutubeEmbedUrl(selectedItem.sourceUrl) ? (
-                      <iframe 
-                        src={getYoutubeEmbedUrl(selectedItem.sourceUrl)!} 
-                        className="w-full h-full" 
-                        allowFullScreen 
-                        title={`YouTube video: ${selectedItem.name}`}
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <p className="text-white/60 text-sm">Could not load video</p>
-                      </div>
-                    )}
-                  </div>
-                  
-                  {/* Transcript section */}
-                  {selectedItem.extractedText && (
-                    <div className="flex-1 overflow-y-auto bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800">
-                      <div className="p-6">
-                        <div className="flex items-center gap-3 mb-4">
-                          <h3 className="px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white text-[14px] font-medium">
-                            Transcript
-                          </h3>
-                        </div>
-                        
-                        <div className="text-[14px] text-gray-600 dark:text-gray-400 leading-[1.8] whitespace-pre-line select-text cursor-text max-w-[700px]">
-                          {selectedItem.extractedText}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Website / Text content — scrollable */}
-              {selectedItem.type !== "pdf" && selectedItem.type !== "youtube" && (
-                <div className="flex-1 overflow-y-auto p-6">
-                  {selectedItem.type === "website" && selectedItem.sourceUrl && (
-                    <div className="mb-3">
-                      <a href={selectedItem.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-[12px] text-blue-500 hover:underline flex items-center gap-1">
-                        <Globe size={12} /> {selectedItem.sourceUrl}
-                      </a>
-                    </div>
-                  )}
-                  {selectedItem.extractedText && (
-                    <div className="text-[14px] text-[#444] dark:text-[#ccc] leading-[1.8] whitespace-pre-line select-text cursor-text max-w-[700px]">
-                      {selectedItem.extractedText}
-                    </div>
-                  )}
-                </div>
-              )}
-            </>
-          ) : (
-            // Content Grid View
-            <div className="flex-1 overflow-y-auto">
-              {/* Compact header */}
-              <div className="flex items-center justify-between px-4 py-2 border-b border-gray-200 dark:border-gray-800 shrink-0">
-                <div className="flex items-center gap-2">
-                  <Link href="/dashboard" className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-all text-gray-500 dark:text-gray-400" aria-label="Back to dashboard" title="Back to dashboard">
-                    <ArrowLeft size={16} />
-                  </Link>
-                  <h1 className="text-[13px] font-medium text-gray-900 dark:text-white">{space.name}</h1>
-                </div>
-                <Link
-                  href={`/dashboard/add?spaceId=${space.id}`}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-black dark:bg-white text-white dark:text-black text-[12px] font-medium hover:opacity-90 transition-all"
-                >
-                  <Plus size={14} /> Add
-                </Link>
-              </div>
-
-              <div className="p-6 max-w-7xl mx-auto">
-                {/* Search bar */}
-                <div className="mb-6">
-                  <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-800 max-w-md">
-                    <Search size={15} className="text-gray-400" />
-                    <input
-                      type="text"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Search..."
-                      aria-label="Search content items"
-                      className="bg-transparent text-[13px] outline-none flex-1 placeholder:text-gray-400 text-gray-900 dark:text-white"
-                    />
-                  </div>
-                </div>
-
-                {/* Content Grid */}
-                {filteredItems.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-20 text-center">
-                    <div className="w-20 h-20 rounded-2xl bg-black dark:bg-white flex items-center justify-center mx-auto mb-6">
-                      <BookOpen size={36} className="text-white dark:text-black" />
-                    </div>
-                    <h3 className="text-[20px] font-semibold text-gray-900 dark:text-white mb-2">
-                      {space.contentItems.length === 0 ? "No content yet" : "No results found"}
-                    </h3>
-                    <p className="text-[15px] text-gray-500 dark:text-gray-400 mb-6 max-w-md">
-                      {space.contentItems.length === 0 
-                        ? "Add your first learning material to get started with AI-powered summaries, quizzes, and chat."
-                        : "Try adjusting your search terms."}
-                    </p>
-                    {space.contentItems.length === 0 && (
-                      <Link 
-                        href={`/dashboard/add?spaceId=${space.id}`} 
-                        className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-[15px] font-medium hover:opacity-90 transition-all shadow-md hover:shadow-lg"
-                      >
-                        <Plus size={18} /> Add Content
-                      </Link>
-                    )}
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {filteredItems.map((item) => {
-                      const IconComponent = TYPE_ICONS[item.type] || FileText;
-                      // Extract YouTube thumbnail if it's a video
-                      const getYoutubeThumbnail = (url: string | undefined) => {
-                        if (!url) return null;
-                        try {
-                          const urlObj = new URL(url);
-                          let videoId = "";
-                          if (urlObj.hostname.includes("youtube.com")) {
-                            videoId = urlObj.searchParams.get("v") || "";
-                          } else if (urlObj.hostname.includes("youtu.be")) {
-                            videoId = urlObj.pathname.slice(1);
-                          }
-                          return videoId ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` : null;
-                        } catch {
-                          return null;
-                        }
-                      };
-                      
-                      const thumbnail = item.type === "youtube" ? getYoutubeThumbnail(item.sourceUrl) : null;
-
-                      return (
-                        <button
-                          key={item.id}
-                          onClick={() => setSelectedContent(item.id)}
-                          aria-label={`Open ${item.name}`}
-                          className="group text-left bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700 hover:shadow-xl transition-all duration-300 relative overflow-hidden focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-black dark:focus-visible:ring-white"
-                        >
-                          {/* Thumbnail for videos */}
-                          {thumbnail ? (
-                            <div className="relative aspect-video w-full overflow-hidden rounded-t-2xl bg-gray-100 dark:bg-gray-800">
-                              <img 
-                                src={thumbnail} 
-                                alt={item.name}
-                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                              />
-                              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/0 to-black/0" />
-                              <div className="absolute bottom-3 left-3 flex items-center gap-2">
-                                <div className="w-10 h-10 rounded-lg bg-black dark:bg-white flex items-center justify-center text-white dark:text-black">
-                                  <Youtube size={20} />
-                                </div>
-                              </div>
-                            </div>
-                          ) : (
-                            /* Icon for non-video content */
-                            <div className="p-6 pb-0">
-                              <div className="w-12 h-12 rounded-xl bg-black dark:bg-white flex items-center justify-center text-white dark:text-black group-hover:scale-105 transition-transform">
-                                <IconComponent size={24} />
-                              </div>
-                            </div>
-                          )}
-                          
-                          <div className="p-6">
-                            {/* Type badge */}
-                            <div className="flex items-center justify-between mb-3">
-                              <span className="text-[11px] px-3 py-1.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 font-medium uppercase tracking-wide">
-                                {item.type}
-                              </span>
-                            </div>
-
-                            {/* Title */}
-                            <h3 className="text-[16px] font-semibold text-gray-900 dark:text-white mb-2 line-clamp-2 transition-colors">
-                              {item.name}
-                            </h3>
-
-                            {/* Metadata */}
-                            <div className="flex items-center gap-2 text-[13px] text-gray-500 dark:text-gray-400">
-                              <span>{timeAgo(item.createdAt)}</span>
-                            </div>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* ═══ RIGHT SIDEBAR - AI Panel (toggleable) ═══ */}
-        {selectedItem && aiPanelOpen && (
-          <>
-            {/* Mobile overlay backdrop */}
-            {isMobile && (
-              <div
-                className="fixed inset-0 bg-black/40 z-40"
-                onClick={() => setAIPanelOpen(false)}
-              />
+      <div className="flex flex-1 flex-col">
+        <header className="flex items-center justify-between border-b border-zinc-900 px-8 py-3 text-[12px] uppercase tracking-[0.35em] text-zinc-500">
+          <div className="flex items-center gap-3 text-zinc-400">
+            <span>{space.name}</span>
+            {selectedItem && (
+              <span className="text-zinc-600">/</span>
             )}
-
-            {/* ═══ RESIZE HANDLE ═══ */}
-            {!isMobile && (
-              <div
-                role="separator"
-                aria-orientation="vertical"
-                aria-label="Resize AI panel"
-                tabIndex={0}
-                className={`w-2 cursor-col-resize hover:bg-[#8b5cf6]/30 active:bg-[#8b5cf6]/50 transition-colors touch-none focus-visible:bg-[#8b5cf6]/40 focus-visible:outline-none ${isDragging ? "bg-[#8b5cf6]/50" : "bg-transparent"}`}
-                onMouseDown={handleResizeStart}
-                onTouchStart={handleResizeStart}
-              />
-            )}
-
-            {/* ═══ AI PANEL ═══ */}
-            <div
-              className={
-                isMobile
-                  ? "fixed inset-y-0 right-0 z-50 w-[85vw] max-w-[420px] bg-[#0d0d12] flex flex-col border-l border-[#1a1a2e] shadow-2xl animate-in slide-in-from-right duration-200"
-                  : `bg-[#0d0d12] flex flex-col shrink-0 border-l border-[#1a1a2e]${isDragging ? "" : " transition-[width] duration-100"}`
-              }
-              style={isMobile ? undefined : { width: isDragging ? "var(--ai-panel-w)" : aiPanelWidth }}
+            {selectedItem && <span className="text-zinc-200 truncate max-w-[320px] normal-case tracking-normal font-medium">{selectedItem.name}</span>}
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setIsCommandCenterOpen(true)}
+              className="flex items-center gap-2 border border-zinc-800 px-4 py-2 text-[11px] font-semibold tracking-[0.3em] text-zinc-200"
             >
-              {/* ─── Tab bar ───────────────────────── */}
-              <div className="flex items-center justify-between px-2 pt-2 pb-0 shrink-0 bg-[#0d0d12]">
-                <div
-                  ref={tabListRef}
-                  role="tablist"
-                  aria-label="Assistant tabs"
-                  onKeyDown={handleTablistKeyDown}
-                  className="flex items-center gap-0.5 flex-1"
+              <CommandIcon size={14} />
+              Search
+              <span className="text-[10px] text-zinc-500">⌘K</span>
+            </button>
+            <button
+              onClick={() => setAIPanelOpen(true)}
+              className="border border-zinc-800 px-4 py-2 text-[11px] font-semibold tracking-[0.3em] text-zinc-200"
+            >
+              Assistant
+            </button>
+          </div>
+        </header>
+
+        <div className="grid flex-1 grid-cols-[260px_minmax(0,1fr)_320px]">
+          <aside className="border-r border-zinc-900">
+            <ContentRail
+              space={space}
+              selectedContent={selectedContent}
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              onSelectItem={(id) => {
+                setSelectedContent(id);
+                setFocusTab("content");
+              }}
+            />
+          </aside>
+
+          <section className="flex flex-col border-r border-zinc-900" ref={contentRef}>
+            <div className="flex items-center border-b border-zinc-900 text-[11px] uppercase tracking-[0.3em] text-zinc-500">
+              {["content", "explain", "practice"].map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setFocusTab(tab as FocusTab)}
+                  className={`px-5 py-3 ${focusTab === tab ? "text-zinc-100 border-b border-zinc-100" : "text-zinc-600"}`}
                 >
-                  {/* Learn Tab */}
-                  <button
-                    role="tab"
-                    id="learn-tab"
-                    type="button"
-                    aria-selected={aiPanelTab === "learn"}
-                    aria-controls="learn-panel"
-                    tabIndex={aiPanelTab === "learn" ? 0 : -1}
-                    onClick={() => {
-                      setAIPanelTab("learn");
-                      setLearnPanelError(null);
-                    }}
-                    className={`flex items-center gap-1.5 px-4 py-2.5 rounded-t-xl text-[13px] font-medium transition-all ${
-                      aiPanelTab === "learn"
-                        ? "bg-[#141420] text-white border border-[#1e1e3a] border-b-transparent"
-                        : "text-[#666] hover:text-[#999] hover:bg-[#111118]"
-                    }`}
-                  >
-                    <BookOpen size={14} />
-                    Learn
-                  </button>
-
-                  {/* Chat sessions as tabs */}
-                  {chatSessions.slice(-3).map((session) => (
-                    <div
-                      key={session.id}
-                      role="tab"
-                      id={`chat-tab-${session.id}`}
-                      aria-selected={aiPanelTab === "chat" && activeChatId === session.id}
-                      aria-controls="chat-panel"
-                      tabIndex={aiPanelTab === "chat" && activeChatId === session.id ? 0 : -1}
-                      onClick={() => openChatSession(session)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") {
-                          e.preventDefault();
-                          openChatSession(session);
-                        }
-                      }}
-                      className={`group flex items-center gap-1.5 px-3 py-2.5 rounded-t-xl text-[12px] font-medium transition-all max-w-[140px] cursor-pointer select-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#8b5cf6] ${
-                        aiPanelTab === "chat" && activeChatId === session.id
-                          ? "bg-[#141420] text-white border border-[#1e1e3a] border-b-transparent"
-                          : "text-[#555] hover:text-[#999] hover:bg-[#111118]"
-                      }`}
-                    >
-                      <MessageSquare size={12} className="shrink-0" />
-                      <span className="truncate">{session.name}</span>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setChatSessions(prev => prev.filter(s => s.id !== session.id));
-                          if (activeChatId === session.id) {
-                            setAIPanelTab("learn");
-                            setActiveChatId(null);
-                            setMessages([]);
-                          }
-                        }}
-                        className="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-[#222] rounded transition-all shrink-0"
-                        aria-label={`Close chat ${session.name}`}
-                      >
-                        <X size={10} />
-                      </button>
-                    </div>
-                  ))}
-
-                  {/* New chat button */}
-                  <button
-                    onClick={() => {
-                      const sessionId = `chat-${Date.now()}`;
-                      const newSession: ChatSession = { id: sessionId, name: "New Chat", messages: [], createdAt: new Date().toISOString() };
-                      setChatSessions(prev => [...prev, newSession]);
-                      setActiveChatId(sessionId);
-                      setMessages([]);
-                      setFollowUps([]);
-                      setAIPanelTab("chat");
-                    }}
-                    className="p-2 rounded-lg text-[#555] hover:text-white hover:bg-[#1a1a2e] transition-all ml-1"
-                    title="New chat"
-                    aria-label="Start new chat"
-                  >
-                    <Plus size={14} />
-                  </button>
-                </div>
-
-                <button 
-                  onClick={() => setAIPanelOpen(false)} 
-                  className="p-2 rounded-lg hover:bg-[#1a1a2e] transition-all text-[#555] hover:text-white ml-2"
-                  title="Close panel"
-                  aria-label="Close assistant panel"
-                >
-                  <X size={14} />
+                  {tab.toUpperCase()}
                 </button>
-              </div>
-
-              {/* Tab content border line */}
-              <div className="h-px bg-[#1e1e3a]" />
-
-              {/* ─── LEARN TAB CONTENT ─────────────── */}
-              {aiPanelTab === "learn" && (
-                <div
-                  id="learn-panel"
-                  role="tabpanel"
-                  aria-labelledby="learn-tab"
-                  className="flex-1 overflow-y-auto bg-[#141420]"
-                >
-                  <div className="p-5 space-y-6">
-                    {learnPanelError && (
-                      <div
-                        role="alert"
-                        aria-live="assertive"
-                        className="rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-2 text-[12px] text-red-300"
-                      >
-                        {learnPanelError}
-                      </div>
-                    )}
-
-                    {/* Generate section */}
-                    <div>
-                      <h4 className="text-[14px] font-semibold text-white mb-3">Generate</h4>
-                      <div className="grid grid-cols-2 gap-3">
-                        <button
-                          onClick={handleGenerateSummary}
-                          disabled={generatingSummary}
-                          aria-label={generatingSummary ? "Generating summary…" : "Generate summary"}
-                          className="flex flex-col items-center gap-2 p-4 rounded-xl border border-[#1e1e3a] bg-[#0d0d12] hover:bg-[#1a1a2e] transition-all disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#8b5cf6]"
-                        >
-                          <div className="w-10 h-10 rounded-lg bg-[#1a1a2e] flex items-center justify-center">
-                            {generatingSummary ? (
-                              <Loader2 size={20} className="animate-spin text-[#8b5cf6]" />
-                            ) : (
-                              <FileText size={20} className="text-[#a78bfa]" />
-                            )}
-                          </div>
-                          <span className="text-[13px] font-medium text-white">Summary</span>
-                        </button>
-
-                        <button
-                          onClick={handleGenerateQuiz}
-                          disabled={generatingQuiz}
-                          aria-label={generatingQuiz ? "Generating quiz…" : "Generate quiz"}
-                          className="flex flex-col items-center gap-2 p-4 rounded-xl border border-[#1e1e3a] bg-[#0d0d12] hover:bg-[#1a1a2e] transition-all disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#8b5cf6]"
-                        >
-                          <div className="w-10 h-10 rounded-lg bg-[#1a1a2e] flex items-center justify-center">
-                            {generatingQuiz ? (
-                              <Loader2 size={20} className="animate-spin text-[#8b5cf6]" />
-                            ) : (
-                              <Brain size={20} className="text-[#a78bfa]" />
-                            )}
-                          </div>
-                          <span className="text-[13px] font-medium text-white">Quiz</span>
-                        </button>
-
-                        <button disabled aria-label="Flashcards (coming soon)" className="flex flex-col items-center gap-2 p-4 rounded-xl border border-[#1e1e3a] bg-[#0d0d12] opacity-40 cursor-not-allowed">
-                          <div className="w-10 h-10 rounded-lg bg-[#1a1a2e] flex items-center justify-center">
-                            <GraduationCap size={20} className="text-[#a78bfa]" />
-                          </div>
-                          <span className="text-[13px] font-medium text-white">Flashcards</span>
-                        </button>
-
-                        <button disabled aria-label="Podcast (coming soon)" className="flex flex-col items-center gap-2 p-4 rounded-xl border border-[#1e1e3a] bg-[#0d0d12] opacity-40 cursor-not-allowed">
-                          <div className="w-10 h-10 rounded-lg bg-[#1a1a2e] flex items-center justify-center">
-                            <Headphones size={20} className="text-[#a78bfa]" />
-                          </div>
-                          <span className="text-[13px] font-medium text-white">Podcast</span>
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Summaries */}
-                    {(space.summaries || []).length > 0 && (
-                      <div>
-                        <div className="flex items-center justify-between mb-3">
-                          <h4 className="text-[14px] font-bold text-white">Summary</h4>
-                          <button 
-                            onClick={handleGenerateSummary} 
-                            disabled={generatingSummary} 
-                            aria-label={generatingSummary ? "Regenerating summary…" : "Refresh summary"}
-                            className="text-[12px] text-[#666] hover:text-white transition-colors disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#8b5cf6] rounded"
-                          >
-                            {generatingSummary ? "Generating..." : "Refresh"}
-                          </button>
-                        </div>
-                        <div className="space-y-3">
-                          {(space.summaries || []).map((s) => (
-                            <details key={s.id} className="group rounded-xl border border-[#1e1e3a] bg-[#0d0d12] overflow-hidden">
-                              <summary className="flex items-center gap-2 px-4 py-3 cursor-pointer select-none hover:bg-[#1a1a2e] transition-colors">
-                                <ChevronRight size={14} className="text-[#8b5cf6] shrink-0 transition-transform group-open:rotate-90" />
-                                <span className="text-[13px] font-semibold text-white">{s.title}</span>
-                              </summary>
-                              <div className="px-4 pb-4 pt-1 text-[13px] leading-[1.8] text-[#ccc] [&_strong]:text-white [&_strong]:font-semibold [&_a]:text-[#a78bfa] [&_h1]:text-[17px] [&_h2]:text-[15px] [&_h3]:text-[14px] [&_h1]:font-bold [&_h2]:font-bold [&_h3]:font-semibold [&_h1]:text-white [&_h2]:text-[#e5e5e5] [&_h3]:text-[#ddd] [&_h1]:mt-4 [&_h1]:mb-2 [&_h2]:mt-3 [&_h2]:mb-1.5 [&_h3]:mt-2 [&_h3]:mb-1 [&_ul]:space-y-1 [&_ul]:my-2 [&_ul]:pl-5 [&_ul]:list-disc [&_ol]:space-y-1 [&_ol]:my-2 [&_ol]:pl-5 [&_ol]:list-decimal [&_li]:leading-relaxed [&_li]:marker:text-[#8b5cf6] [&_p]:mb-2 [&_p:last-child]:mb-0 [&_code]:text-[12px] [&_code]:bg-[#8b5cf6]/10 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded-md [&_code]:text-[#d4bfff] [&_pre]:bg-[#0d0d12] [&_pre]:p-3 [&_pre]:rounded-xl [&_pre]:border [&_pre]:border-[#1e1e3a] [&_pre]:overflow-x-auto [&_blockquote]:border-l-2 [&_blockquote]:border-[#8b5cf6]/40 [&_blockquote]:pl-3 [&_blockquote]:text-[#999] [&_blockquote]:italic [&_table]:w-full [&_table]:border-collapse [&_table]:my-3 [&_table]:text-[12px] [&_th]:bg-[#1a1a2e] [&_th]:text-[#e5e5e5] [&_th]:font-semibold [&_th]:px-3 [&_th]:py-2 [&_th]:border [&_th]:border-[#1e1e3a] [&_th]:text-left [&_td]:px-3 [&_td]:py-2 [&_td]:border [&_td]:border-[#1e1e3a] [&_td]:text-[#bbb] [&_hr]:border-[#1e1e3a] [&_hr]:my-4">
-                                <ReactMarkdown remarkPlugins={[remarkGfm]}>{s.content}</ReactMarkdown>
-                              </div>
-                            </details>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Quiz */}
-                    {(space.quizQuestions || []).length > 0 && (
-                      <div>
-                        <div className="flex items-center justify-between mb-3">
-                          <h4 className="text-[13px] font-semibold text-[#aaa]">Quiz</h4>
-                          {quizSubmitted && (
-                            <div className="flex items-center gap-2">
-                              <span className={`text-[12px] font-bold ${quizPercent >= 70 ? 'text-emerald-400' : 'text-amber-400'}`}>
-                                {quizScore}/{quizTotal} ({quizPercent}%)
-                              </span>
-                              <button onClick={() => { setQuizAnswers({}); setQuizSubmitted(false); }} aria-label="Retry quiz" className="text-[11px] text-[#666] hover:text-white transition-colors flex items-center gap-1 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#8b5cf6] rounded">
-                                <RotateCcw size={11} /> Retry
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                        <div className="space-y-4">
-                          {(space.quizQuestions || []).map((q, qi) => {
-                            const answered = quizAnswers[qi] !== undefined;
-                            const correct = quizSubmitted && quizAnswers[qi] === q.correctIndex;
-                            const wrong = quizSubmitted && answered && quizAnswers[qi] !== q.correctIndex;
-                            return (
-                              <div key={q.id} className="p-4 rounded-xl border border-[#1e1e3a] bg-[#0d0d12]">
-                                <p className="text-[13px] font-medium text-white mb-3">{qi + 1}. {q.question}</p>
-                                <div className="space-y-2">
-                                  {(q.options || []).map((opt, oi) => {
-                                    const isSelected = quizAnswers[qi] === oi;
-                                    const isCorrect = quizSubmitted && oi === q.correctIndex;
-                                    return (
-                                      <button
-                                        key={oi}
-                                        onClick={() => !quizSubmitted && setQuizAnswers({ ...quizAnswers, [qi]: oi })}
-                                        disabled={quizSubmitted}
-                                        aria-label={`Option ${oi + 1}: ${opt}`}
-                                        className={`w-full text-left px-3 py-2.5 rounded-lg text-[13px] transition-all border focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#8b5cf6] ${
-                                          isCorrect ? "bg-emerald-500/10 border-emerald-500/40 text-emerald-300" :
-                                          isSelected && quizSubmitted ? "bg-red-500/10 border-red-500/40 text-red-300" :
-                                          isSelected ? "bg-[#8b5cf6]/10 border-[#8b5cf6]/40 text-white" :
-                                          "border-[#1e1e3a] text-[#bbb] hover:bg-[#1a1a2e] hover:text-white"
-                                        }`}
-                                      >
-                                        <div className="flex items-center gap-2">
-                                          {quizSubmitted && isCorrect && <CheckCircle2 size={14} className="text-emerald-400 shrink-0" />}
-                                          {quizSubmitted && isSelected && !isCorrect && <XCircle size={14} className="text-red-400 shrink-0" />}
-                                          <span>{opt}</span>
-                                        </div>
-                                      </button>
-                                    );
-                                  })}
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                        {!quizSubmitted && (
-                          <button
-                            onClick={() => setQuizSubmitted(true)}
-                            disabled={Object.keys(quizAnswers).length < (space.quizQuestions || []).length}
-                            className="mt-4 w-full py-3 rounded-xl bg-[#8b5cf6] text-white text-[14px] font-semibold hover:bg-[#7c3aed] transition-all disabled:opacity-40 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#8b5cf6]"
-                          >
-                            Submit Answers
-                          </button>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Quick Ask section at bottom of learn tab */}
-                    <div className="pt-2">
-                      <h4 className="text-[13px] font-semibold text-[#aaa] mb-3">Ask AI</h4>
-                      <div className="relative rounded-xl bg-[#0d0d12] border border-[#1e1e3a] focus-within:border-[#8b5cf6]/50 transition-all">
-                        <textarea
-                          value={chatInput}
-                          onChange={(e) => {
-                            setChatInput(e.target.value);
-                            e.target.style.height = 'auto';
-                            e.target.style.height = Math.min(e.target.scrollHeight, 80) + 'px';
-                          }}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" && !e.shiftKey) {
-                              e.preventDefault();
-                              handleSendMessage();
-                            }
-                          }}
-                          placeholder="Ask anything about your content..."
-                          rows={1}
-                          className="w-full pl-4 pr-12 py-3 rounded-xl bg-transparent text-[13px] outline-none resize-none text-white placeholder:text-[#555] leading-relaxed"
-                          style={{ minHeight: '44px', maxHeight: '80px' }}
-                        />
-                        <button
-                          onClick={() => handleSendMessage()}
-                          disabled={!chatInput.trim() || sendingChat}
-                          aria-label="Send message"
-                          className={`absolute right-2 bottom-1.5 p-2 rounded-lg transition-all ${chatInput.trim() ? 'bg-[#8b5cf6] text-white hover:bg-[#7c3aed]' : 'text-[#333]'} disabled:cursor-not-allowed`}
-                        >
-                          <Send size={14} />
-                        </button>
-                      </div>
-                    </div>
+              ))}
+            </div>
+            <div className="flex-1 overflow-hidden">
+              {focusTab === "content" && (
+                selectedItem ? (
+                  <SourceViewer item={selectedItem} />
+                ) : (
+                  <div className="flex h-full items-center justify-center text-[12px] text-zinc-500">
+                    Select something from the left rail.
                   </div>
-                </div>
+                )
               )}
-
-              {/* ─── CHAT TAB CONTENT ──────────────── */}
-              {aiPanelTab === "chat" && (
-                <div
-                  id="chat-panel"
-                  role="tabpanel"
-                  aria-labelledby={activeChatId ? `chat-tab-${activeChatId}` : "learn-tab"}
-                  className="flex-1 flex flex-col bg-[#141420] overflow-hidden"
-                >
-                  {/* Messages */}
-                  <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4" style={{ scrollBehavior: 'smooth' }}>
-                    {messages.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center h-full gap-4 py-16">
-                        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#8b5cf6]/20 to-[#6366f1]/20 flex items-center justify-center border border-[#8b5cf6]/20">
-                          <Sparkles size={28} className="text-[#8b5cf6]" />
-                        </div>
-                        <div className="text-center">
-                          <p className="text-[15px] font-semibold text-white mb-1">Start a conversation</p>
-                          <p className="text-[12px] text-[#666] max-w-[240px] leading-relaxed">Ask questions about your content, get explanations, and dive deeper into any topic</p>
-                        </div>
-                        {/* Quick-start chips */}
-                        <div className="flex flex-wrap gap-2 justify-center mt-2 max-w-[320px]">
-                          {[
-                            "Explain the key concepts",
-                            "Summarize the main points",
-                            "Quiz me on this material",
-                            "What should I focus on?",
-                          ].map((chip) => (
-                            <button
-                              key={chip}
-                              onClick={() => { setChatInput(chip); handleSendMessage(chip); }}
-                              className="px-3 py-2 rounded-xl bg-[#1a1a2e] border border-[#252545] text-[12px] text-[#aaa] hover:text-white hover:bg-[#252545] hover:border-[#8b5cf6]/30 transition-all focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#8b5cf6]"
-                            >
-                              {chip}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    ) : (
-                      messages.map((msg, idx) => {
-                        const isUser = msg.role === "user";
-                        const isLast = idx === messages.length - 1;
-                        const hasQuote = msg.content.startsWith("> ");
-                        const quotePart = hasQuote ? msg.content.split("\n\n")[0].replace(/^> /, "") : null;
-                        const mainContent = hasQuote ? msg.content.split("\n\n").slice(1).join("\n\n") : msg.content;
-
-                        // Replace [Source N] with styled badges in display
-                        const renderContentWithSources = (text: string) => {
-                          return text.replace(/\[Source (\d+)\]/g, '**⟨Source $1⟩**');
-                        };
-
-                        return (
-                          <div key={msg.id} className={`${isLast ? "animate-in fade-in slide-in-from-bottom-2 duration-300" : ""}`}>
-                            {isUser ? (
-                              /* ── User message ── */
-                              <div className="flex justify-end">
-                                <div className="max-w-[85%]">
-                                  {quotePart && (
-                                    <div className="mb-1.5 px-3 py-2 rounded-xl bg-[#8b5cf6]/10 border-l-2 border-[#8b5cf6] ml-auto max-w-fit">
-                                      <p className="text-[11px] text-[#a78bfa] leading-relaxed line-clamp-2 italic">{quotePart}</p>
-                                    </div>
-                                  )}
-                                  <div className="px-4 py-3 rounded-2xl rounded-br-md bg-[#8b5cf6] text-white">
-                                    <p className="text-[13px] leading-relaxed">{mainContent}</p>
-                                  </div>
-                                  <p className="text-[10px] text-[#444] mt-1 text-right pr-1">
-                                    {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                  </p>
-                                </div>
-                              </div>
-                            ) : (
-                              /* ── AI message ── */
-                              <div className="flex gap-3">
-                                <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#8b5cf6] to-[#6366f1] flex items-center justify-center shrink-0 mt-0.5 shadow-lg shadow-[#8b5cf6]/20">
-                                  <Sparkles size={13} className="text-white" />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-[11px] font-semibold text-[#8b5cf6] mb-1.5 uppercase tracking-wider">YesLearn AI</p>
-                                  <div className="text-[13px] leading-[1.8] text-[#ddd] [&_strong]:text-white [&_a]:text-[#8b5cf6] [&_h1]:text-[16px] [&_h2]:text-[15px] [&_h3]:text-[14px] [&_h1]:font-bold [&_h2]:font-bold [&_h3]:font-semibold [&_h1]:text-white [&_h2]:text-white [&_h3]:text-white [&_h1]:mt-4 [&_h1]:mb-2 [&_h2]:mt-3 [&_h2]:mb-1.5 [&_h3]:mt-2 [&_h3]:mb-1 [&_ul]:space-y-1 [&_ol]:space-y-1 [&_li]:leading-relaxed [&_p]:mb-2 [&_p:last-child]:mb-0 [&_code]:text-[12px] [&_code]:bg-white/5 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded-md [&_code]:text-[#e879f9] [&_pre]:bg-[#0d0d12] [&_pre]:p-3 [&_pre]:rounded-xl [&_pre]:border [&_pre]:border-[#1e1e3a] [&_pre]:overflow-x-auto [&_blockquote]:border-l-2 [&_blockquote]:border-[#8b5cf6]/40 [&_blockquote]:pl-3 [&_blockquote]:text-[#999] [&_blockquote]:italic">
-                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                      {renderContentWithSources(msg.content)}
-                                    </ReactMarkdown>
-                                  </div>
-
-                                  {/* Source citations */}
-                                  {msg.sources && msg.sources.length > 0 && (
-                                    <div className="mt-3 flex flex-wrap gap-2">
-                                      {msg.sources.map((src) => (
-                                        <div
-                                          key={src.index}
-                                          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#8b5cf6]/10 border border-[#8b5cf6]/20 text-[11px] text-[#a78bfa] font-medium hover:bg-[#8b5cf6]/20 transition-colors cursor-default"
-                                        >
-                                          <FileText size={11} className="shrink-0" />
-                                          <span className="truncate max-w-[150px]">{src.name}</span>
-                                          <span className="text-[#666] text-[10px] shrink-0">Source {src.index}</span>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  )}
-
-                                  {/* Actions */}
-                                  <div className="flex items-center gap-1 mt-2">
-                                    <button
-                                      onClick={() => navigator.clipboard.writeText(msg.content)}
-                                      className="p-1.5 rounded-lg hover:bg-[#1a1a2e] transition-colors"
-                                      title="Copy"
-                                      aria-label="Copy AI response"
-                                    >
-                                      <Copy size={12} className="text-[#555]" />
-                                    </button>
-                                    <button className="p-1.5 rounded-lg hover:bg-[#1a1a2e] transition-colors" title="Good" aria-label="Mark response as helpful">
-                                      <ThumbsUp size={12} className="text-[#555]" />
-                                    </button>
-                                    <button className="p-1.5 rounded-lg hover:bg-[#1a1a2e] transition-colors" title="Bad" aria-label="Mark response as not helpful">
-                                      <ThumbsDown size={12} className="text-[#555]" />
-                                    </button>
-                                  </div>
-
-                                  {/* Follow-up questions — only on the last AI message */}
-                                  {isLast && !sendingChat && (msg.followUpQuestions?.length || followUps.length > 0) && (
-                                    <div className="mt-4 space-y-2">
-                                      <p className="text-[11px] font-semibold text-[#666] uppercase tracking-wider">Suggested follow-ups</p>
-                                      {(msg.followUpQuestions?.length ? msg.followUpQuestions : followUps).map((q, i) => (
-                                        <button
-                                          key={i}
-                                          onClick={() => { setChatInput(q); handleSendMessage(q); }}
-                                          className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-[#0d0d12] border border-[#1e1e3a] text-[12px] text-[#bbb] hover:text-white hover:bg-[#1a1a2e] hover:border-[#8b5cf6]/30 transition-all text-left group focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#8b5cf6]"
-                                        >
-                                          <ChevronRight size={12} className="text-[#8b5cf6] shrink-0 group-hover:translate-x-0.5 transition-transform" />
-                                          <span className="line-clamp-2">{q}</span>
-                                        </button>
-                                      ))}
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })
-                    )}
-
-                    {/* Typing indicator */}
-                    {sendingChat && (
-                      <div className="flex gap-3 animate-in fade-in slide-in-from-bottom-2 duration-200">
-                        <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#8b5cf6] to-[#6366f1] flex items-center justify-center shrink-0 shadow-lg shadow-[#8b5cf6]/20">
-                          <Sparkles size={13} className="text-white" />
-                        </div>
-                        <div className="px-4 py-3 rounded-2xl rounded-bl-md bg-[#1a1a2e] border border-[#252545]">
-                          <div className="flex items-center gap-1.5">
-                            <div className="w-2 h-2 rounded-full bg-[#8b5cf6] animate-bounce" style={{ animationDelay: '0ms' }} />
-                            <div className="w-2 h-2 rounded-full bg-[#8b5cf6] animate-bounce" style={{ animationDelay: '150ms' }} />
-                            <div className="w-2 h-2 rounded-full bg-[#8b5cf6] animate-bounce" style={{ animationDelay: '300ms' }} />
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    <div ref={chatEndRef} />
-                  </div>
-
-                  {/* ─── Chat Composer ──────────────────── */}
-                  <div className="px-4 pb-4 pt-2 border-t border-[#1e1e3a] bg-[#0d0d12]/80 backdrop-blur-xl shrink-0">
-                    {/* Quoted text banner */}
-                    {quotedText && (
-                      <div className="mb-2.5 p-2.5 rounded-xl bg-[#8b5cf6]/10 border border-[#8b5cf6]/20 flex items-start justify-between gap-2">
-                        <div className="flex-1 min-w-0 flex items-start gap-2">
-                          <div className="w-1 self-stretch rounded-full bg-[#8b5cf6] shrink-0" />
-                          <div>
-                            <p className="text-[10px] uppercase tracking-wider text-[#8b5cf6] font-semibold mb-0.5">Selected text</p>
-                            <p className="text-[12px] text-[#aaa] leading-relaxed line-clamp-2">{quotedText}</p>
-                          </div>
-                        </div>
-                        <button onClick={() => setQuotedText(null)} aria-label="Remove selected text quote" className="p-1 hover:bg-[#8b5cf6]/20 rounded-lg transition-colors shrink-0">
-                          <X size={14} className="text-[#8b5cf6]" />
-                        </button>
-                      </div>
-                    )}
-
-                    {/* Input */}
-                    <div className="relative rounded-xl bg-[#0d0d12] border border-[#1e1e3a] focus-within:border-[#8b5cf6]/50 focus-within:shadow-lg focus-within:shadow-[#8b5cf6]/5 transition-all">
-                      <textarea
-                        value={chatInput}
-                        onChange={(e) => {
-                          setChatInput(e.target.value);
-                          e.target.style.height = 'auto';
-                          e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" && !e.shiftKey) {
-                            e.preventDefault();
-                            handleSendMessage();
-                          }
-                        }}
-                        placeholder="Ask anything..."
-                        disabled={sendingChat}
-                        rows={1}
-                        className="w-full pl-4 pr-12 pt-3 pb-3 rounded-xl bg-transparent text-[13px] outline-none resize-none disabled:opacity-50 text-white placeholder:text-[#555] leading-relaxed"
-                        style={{ minHeight: '44px', maxHeight: '120px' }}
-                      />
-                      <button
-                        onClick={() => handleSendMessage()}
-                        disabled={!chatInput.trim() || sendingChat}
-                        aria-label="Send chat message"
-                        className={`absolute right-2 bottom-1.5 p-2 rounded-lg transition-all duration-200 ${chatInput.trim() 
-                          ? 'bg-[#8b5cf6] text-white shadow-lg shadow-[#8b5cf6]/25 hover:bg-[#7c3aed] active:scale-95' 
-                          : 'text-[#333]'} disabled:cursor-not-allowed`}
-                      >
-                        {sendingChat ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
-                      </button>
-                    </div>
-                    <p className="text-[10px] text-[#444] mt-2 text-center">AI may make mistakes. Verify important information.</p>
-                  </div>
-                </div>
+              {focusTab === "explain" && (
+                <ExplainPanel
+                  space={space}
+                  generatingSummary={generatingSummary}
+                  handleGenerateSummary={handleGenerateSummary}
+                  learnPanelError={learnPanelError}
+                />
+              )}
+              {focusTab === "practice" && (
+                <PracticePanel
+                  space={space}
+                  quizAnswers={quizAnswers}
+                  setQuizAnswers={setQuizAnswers}
+                  quizSubmitted={quizSubmitted}
+                  setQuizSubmitted={setQuizSubmitted}
+                  generatingQuiz={generatingQuiz}
+                  handleGenerateQuiz={handleGenerateQuiz}
+                />
               )}
             </div>
-          </>
-        )}
+          </section>
 
-        {/* Toggle AI Panel Button (when closed and content is selected) */}
-        {selectedItem && !aiPanelOpen && (
-          <button
-            onClick={() => setAIPanelOpen(true)}
-            className="fixed right-6 bottom-6 w-14 h-14 rounded-2xl bg-gradient-to-br from-[#8b5cf6] to-[#6366f1] text-white shadow-xl shadow-[#8b5cf6]/30 hover:shadow-[#8b5cf6]/50 transition-all flex items-center justify-center z-50 hover:scale-110 active:scale-95"
-            title="Open AI Assistant"
-            aria-label="Open AI assistant"
-          >
-            <Sparkles size={24} />
-          </button>
-        )}
+          <aside>
+            <StudyStack
+              space={space}
+              generatingSummary={generatingSummary}
+              generatingQuiz={generatingQuiz}
+              handleGenerateSummary={handleGenerateSummary}
+              handleGenerateQuiz={handleGenerateQuiz}
+              summariesReady={summariesReady}
+              quizReady={quizReady}
+              followUps={followUps}
+              chatSessions={chatSessions}
+              openChatSession={openChatSession}
+              setIsCommandCenterOpen={setIsCommandCenterOpen}
+            />
+          </aside>
+        </div>
+      </div>
+
+      <AIPanel
+        isMobile={isMobile}
+        aiPanelOpen={aiPanelOpen}
+        setAIPanelOpen={setAIPanelOpen}
+        aiPanelWidth={aiPanelWidth}
+        aiPanelTab={aiPanelTab}
+        setAIPanelTab={setAIPanelTab}
+        chatSessions={chatSessions}
+        setChatSessions={setChatSessions}
+        activeChatId={activeChatId}
+        openChatSession={openChatSession}
+        createNewChat={createNewChat}
+        showLearnTab={false}
+      >
+        <ChatSection
+          messages={messages}
+          sendingChat={sendingChat}
+          chatInput={chatInput}
+          setChatInput={setChatInput}
+          handleSendMessage={handleSendMessage}
+          quotedText={quotedText}
+          setQuotedText={setQuotedText}
+          followUps={followUps}
+          chatEndRef={chatEndRef}
+        />
+      </AIPanel>
     </div>
   );
 }

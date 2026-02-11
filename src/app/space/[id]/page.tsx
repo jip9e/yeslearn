@@ -87,6 +87,14 @@ type AIPanelTab = "learn" | "chat";
 
 /* ────────────────────────── Helpers ─────────────────────── */
 
+const TYPE_ICONS: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
+  youtube: Youtube,
+  pdf: FileText,
+  website: Globe,
+  audio: Mic,
+  text: FileText,
+};
+
 function timeAgo(dateStr: string): string {
   const now = new Date();
   const date = new Date(dateStr);
@@ -138,14 +146,18 @@ function ToolCard({ icon, label, color, onClick, loading, description }: {
     <button
       onClick={onClick}
       disabled={loading}
-      className="flex items-center gap-3 p-3.5 rounded-xl border border-[#eee] dark:border-[#222] bg-white dark:bg-[#111] hover:bg-[#f8f8f8] dark:hover:bg-[#1a1a1a] hover:border-[#ddd] dark:hover:border-[#333] transition-all duration-200 hover:shadow-sm active:scale-[0.98] disabled:opacity-50"
+      className="group flex items-center gap-3 p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 hover:bg-gradient-to-br hover:from-gray-50 hover:to-white dark:hover:from-gray-800 dark:hover:to-gray-900 hover:border-gray-300 dark:hover:border-gray-700 transition-all duration-300 hover:shadow-lg active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
     >
-      <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 bg-[#f0f0f0] dark:bg-[#1a1a1a]">
-        {loading ? <Loader2 size={15} className="animate-spin text-[#888]" /> : <span className="text-[#555] dark:text-[#888]">{icon}</span>}
+      <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-gradient-to-br from-gray-100 to-gray-50 dark:from-gray-800 dark:to-gray-900 group-hover:scale-110 transition-transform shadow-sm">
+        {loading ? (
+          <Loader2 size={18} className="animate-spin text-gray-600 dark:text-gray-400" />
+        ) : (
+          <span className="text-gray-700 dark:text-gray-300">{icon}</span>
+        )}
       </div>
-      <div className="text-left min-w-0">
-        <span className="text-[13px] font-medium text-[#333] dark:text-[#ccc] block">{label}</span>
-        {description && <span className="text-[11px] text-[#999] dark:text-[#666] block">{description}</span>}
+      <div className="text-left min-w-0 flex-1">
+        <span className="text-[14px] font-medium text-gray-900 dark:text-white block">{label}</span>
+        {description && <span className="text-[12px] text-gray-500 dark:text-gray-400 block mt-0.5">{description}</span>}
       </div>
     </button>
   );
@@ -206,9 +218,8 @@ export default function SpaceDetailPage() {
   const [generatingQuiz, setGeneratingQuiz] = useState(false);
   const [quizCount, setQuizCount] = useState(5);
 
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [aiPanelOpen, setAIPanelOpen] = useState(true);
   const [aiPanelTab, setAIPanelTab] = useState<AIPanelTab>("learn");
-  const [aiPanelExpanded, setAIPanelExpanded] = useState(false);
   const [selectedText, setSelectedText] = useState("");
   const [selectionToolbar, setSelectionToolbar] = useState<{ x: number; y: number; text: string } | null>(null);
   const [quotedText, setQuotedText] = useState<string | null>(null);
@@ -415,90 +426,69 @@ export default function SpaceDetailPage() {
   /* ════════════════════════ RENDER ══════════════════════ */
 
   return (
-    <div className="h-full flex flex-col bg-[#fafafa] dark:bg-[#0a0a0a]">
-      {/* ── Top Bar ───────────────────────────────────────── */}
-      <div className="border-b border-[#eee] dark:border-[#1a1a1a] bg-white dark:bg-[#0a0a0a] px-4 py-2.5 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-2">
-          <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-1.5 rounded-lg hover:bg-[#f0f0f0] dark:hover:bg-[#1a1a1a] transition-colors text-[#888]" title={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}>
-            {sidebarOpen ? <PanelLeftClose size={18} /> : <PanelLeftOpen size={18} />}
-          </button>
-          <Link href="/dashboard" className="text-[#999] hover:text-black dark:hover:text-white transition-colors">
-            <ArrowLeft size={16} />
+    <div className="h-full flex flex-col bg-gradient-to-br from-gray-50 via-white to-gray-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950">
+      {/* ── Clean Top Bar ───────────────────────────────────────── */}
+      <div className="border-b border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg px-6 py-4 flex items-center justify-between shrink-0 shadow-sm">
+        <div className="flex items-center gap-4">
+          <Link href="/dashboard" className="p-2 rounded-lg text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-all">
+            <ArrowLeft size={20} />
           </Link>
-          <div className="flex items-center gap-2 text-[14px]">
-            <div className="w-6 h-6 rounded-md bg-[#f0f0f0] dark:bg-[#1a1a1a] flex items-center justify-center text-[11px] font-semibold text-[#555] dark:text-[#888]">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-[16px] font-bold shadow-lg">
               {space.name.charAt(0).toUpperCase()}
             </div>
-            <span className="font-semibold dark:text-white">{space.name}</span>
-            {selectedItem && (
-              <>
-                <span className="text-[#ccc]">/</span>
-                <span className="text-[#888]">{selectedItem.name}</span>
-              </>
-            )}
+            <div>
+              <h1 className="font-semibold text-[18px] text-gray-900 dark:text-white">{space.name}</h1>
+              {space.description && (
+                <p className="text-[13px] text-gray-500 dark:text-gray-400">{space.description}</p>
+              )}
+            </div>
           </div>
         </div>
-        <Link href={`/dashboard/add?spaceId=${space.id}`} className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-black dark:bg-white text-white dark:text-black text-[12px] font-medium hover:opacity-90 transition-opacity">
-          <Plus size={12} /> Add Content
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link 
+            href={`/dashboard/add?spaceId=${space.id}`} 
+            className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-[14px] font-medium hover:opacity-90 transition-all shadow-sm hover:shadow-md"
+          >
+            <Plus size={16} /> Add Content
+          </Link>
+        </div>
       </div>
 
-      {/* ── Main 3-Column Layout ─────────────────────────── */}
+      {/* ── Main Content Area ─────────────────────────── */}
       <div className="flex-1 flex overflow-hidden" ref={mainContainerRef}>
 
-        {/* ═══ SIDEBAR (collapsible) ═══ */}
-        <div className={`bg-white dark:bg-[#0a0a0a] border-r border-[#eee] dark:border-[#1a1a1a] overflow-y-auto shrink-0 transition-all duration-300 ease-in-out ${sidebarOpen ? "w-[240px]" : "w-0 overflow-hidden"}`}>
-          <div className="w-[240px]">
-            <div className="p-3">
-              <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#f5f5f5] dark:bg-[#141414]">
-                <Search size={13} className="text-[#999]" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search..."
-                  className="bg-transparent text-[12px] outline-none flex-1 placeholder:text-[#999] dark:text-white"
-                />
-              </div>
-            </div>
-            {filteredItems.length === 0 ? (
-              <div className="px-4 py-6 text-center">
-                <p className="text-[12px] text-[#999] mb-2">{space.contentItems.length === 0 ? "No content yet" : "No results"}</p>
-                {space.contentItems.length === 0 && (
-                  <Link href={`/dashboard/add?spaceId=${space.id}`} className="text-[12px] text-black dark:text-white font-medium hover:opacity-70">+ Add content</Link>
-                )}
-              </div>
-            ) : (
-              filteredItems.map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => setSelectedContent(item.id)}
-                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-all duration-150 ${selectedContent === item.id ? "bg-[#f0f0f0] dark:bg-[#1a1a1a] border-l-2 border-black dark:border-white" : "hover:bg-[#f5f5f5] dark:hover:bg-[#111] border-l-2 border-transparent"
-                    }`}
-                >
-                  <div className="w-7 h-7 rounded-lg bg-[#f0f0f0] dark:bg-[#1a1a1a] flex items-center justify-center shrink-0">{getTypeIcon(item.type)}</div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[12px] font-medium truncate dark:text-white">{item.name}</p>
-                    <p className="text-[10px] text-[#999]">{item.type} · {timeAgo(item.createdAt)}</p>
-                  </div>
-                </button>
-              ))
-            )}
-          </div>
-        </div>
-
-        {/* ═══ CONTENT VIEWER (left/center) ═══ */}
-        <div className={`flex-1 overflow-hidden bg-[#fafafa] dark:bg-[#0a0a0a] transition-all duration-300 flex flex-col ${aiPanelExpanded ? "hidden" : ""}`} ref={contentRef}>
+        {/* ═══ MAIN CONTENT AREA ═══ */}
+        <div className="flex-1 overflow-hidden bg-gradient-to-br from-gray-50 to-white dark:from-gray-950 dark:to-gray-900 transition-all duration-300 flex flex-col" ref={contentRef}>
           {selectedItem ? (
             <>
-              {/* Content header bar */}
-              <div className="flex items-center justify-between px-4 py-2 border-b border-[#eee] dark:border-[#1a1a1a] bg-white dark:bg-[#0a0a0a] shrink-0">
-                <div className="flex items-center gap-2">
-                  {getTypeIcon(selectedItem.type)}
-                  <h2 className="text-[13px] font-medium dark:text-white">{selectedItem.name}</h2>
+              {/* Content header with back button */}
+              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm shrink-0">
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setSelectedContent(null)}
+                    className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-all text-gray-600 dark:text-gray-400"
+                    title="Back to content list"
+                  >
+                    <ArrowLeft size={18} />
+                  </button>
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white shadow-md">
+                      {getTypeIcon(selectedItem.type)}
+                    </div>
+                    <h2 className="text-[15px] font-semibold text-gray-900 dark:text-white">{selectedItem.name}</h2>
+                  </div>
                 </div>
-                <button onClick={() => handleDeleteContent(selectedItem.id)} disabled={deleting === selectedItem.id} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
-                  {deleting === selectedItem.id ? <Loader2 size={13} className="animate-spin text-red-400" /> : <Trash2 size={13} className="text-red-400" />}
+                <button 
+                  onClick={() => handleDeleteContent(selectedItem.id)} 
+                  disabled={deleting === selectedItem.id} 
+                  className="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-all group"
+                >
+                  {deleting === selectedItem.id ? (
+                    <Loader2 size={16} className="animate-spin text-red-400" />
+                  ) : (
+                    <Trash2 size={16} className="text-red-400 group-hover:text-red-500" />
+                  )}
                 </button>
               </div>
 
@@ -512,22 +502,52 @@ export default function SpaceDetailPage() {
                 </div>
               )}
 
-              {/* YouTube Embed — full width */}
+              {/* YouTube Embed with enhanced transcript view */}
               {selectedItem.type === "youtube" && selectedItem.sourceUrl && (
-                <div className="flex-1 flex flex-col">
-                  <div className="flex-1 min-h-0">
+                <div className="flex-1 flex flex-col overflow-hidden">
+                  {/* Video player */}
+                  <div className="aspect-video w-full bg-black shrink-0">
                     {getYoutubeEmbedUrl(selectedItem.sourceUrl) ? (
-                      <iframe src={getYoutubeEmbedUrl(selectedItem.sourceUrl)!} className="w-full h-full" allowFullScreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" />
+                      <iframe 
+                        src={getYoutubeEmbedUrl(selectedItem.sourceUrl)!} 
+                        className="w-full h-full" 
+                        allowFullScreen 
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                      />
                     ) : (
-                      <div className="bg-black h-full flex items-center justify-center"><p className="text-white/60 text-sm">Could not load video</p></div>
+                      <div className="w-full h-full flex items-center justify-center">
+                        <p className="text-white/60 text-sm">Could not load video</p>
+                      </div>
                     )}
                   </div>
-                  {/* Transcript below video */}
+                  
+                  {/* Transcript/Chapters section (like youlearn.ai) */}
                   {selectedItem.extractedText && (
-                    <div className="max-h-[40%] overflow-y-auto p-4 border-t border-[#eee] dark:border-[#1a1a1a] bg-white dark:bg-[#0a0a0a]">
-                      <h3 className="text-[12px] font-semibold text-[#999] mb-2 uppercase tracking-wider">Transcript</h3>
-                      <div className="text-[13px] text-[#444] dark:text-[#ccc] leading-[1.7] whitespace-pre-line select-text cursor-text">
-                        {selectedItem.extractedText}
+                    <div className="flex-1 overflow-y-auto bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800">
+                      <div className="p-6">
+                        <div className="flex items-center gap-3 mb-4">
+                          <button className="px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white text-[14px] font-medium">
+                            Chapters
+                          </button>
+                          <button className="px-4 py-2 rounded-lg text-gray-600 dark:text-gray-400 text-[14px] font-medium hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                            Transcripts
+                          </button>
+                        </div>
+                        
+                        <div className="space-y-4">
+                          {/* Sample chapter format - in real app, parse from transcript */}
+                          <div className="group cursor-pointer">
+                            <div className="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                              <span className="text-[13px] font-mono text-gray-500 dark:text-gray-400 shrink-0">00:00</span>
+                              <div className="flex-1">
+                                <h4 className="text-[14px] font-medium text-gray-900 dark:text-white mb-1">Introduction</h4>
+                                <p className="text-[13px] text-gray-600 dark:text-gray-400 leading-relaxed line-clamp-2">
+                                  {selectedItem.extractedText.slice(0, 150)}...
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   )}
@@ -553,353 +573,351 @@ export default function SpaceDetailPage() {
               )}
             </>
           ) : (
-            <div className="h-full flex flex-col items-center justify-center text-[#999] gap-3">
-              <BookOpen size={32} />
-              <p className="text-[14px]">{space.contentItems.length === 0 ? "Add content to get started" : "Select content to view"}</p>
+            // Content Grid View (like youlearn.ai)
+            <div className="flex-1 overflow-y-auto p-8">
+              <div className="max-w-7xl mx-auto">
+                {/* Search bar */}
+                <div className="mb-8">
+                  <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm max-w-2xl">
+                    <Search size={18} className="text-gray-400" />
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Search your content..."
+                      className="bg-transparent text-[15px] outline-none flex-1 placeholder:text-gray-400 text-gray-900 dark:text-white"
+                    />
+                  </div>
+                </div>
+
+                {/* Content Grid */}
+                {filteredItems.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-20 text-center">
+                    <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center mx-auto mb-6 shadow-lg">
+                      <BookOpen size={36} className="text-white" />
+                    </div>
+                    <h3 className="text-[20px] font-semibold text-gray-900 dark:text-white mb-2">
+                      {space.contentItems.length === 0 ? "No content yet" : "No results found"}
+                    </h3>
+                    <p className="text-[15px] text-gray-500 dark:text-gray-400 mb-6 max-w-md">
+                      {space.contentItems.length === 0 
+                        ? "Add your first learning material to get started with AI-powered summaries, quizzes, and chat."
+                        : "Try adjusting your search terms."}
+                    </p>
+                    {space.contentItems.length === 0 && (
+                      <Link 
+                        href={`/dashboard/add?spaceId=${space.id}`} 
+                        className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-[15px] font-medium hover:opacity-90 transition-all shadow-md hover:shadow-lg"
+                      >
+                        <Plus size={18} /> Add Content
+                      </Link>
+                    )}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {filteredItems.map((item) => {
+                      const IconComponent = TYPE_ICONS[item.type] || FileText;
+                      // Extract YouTube thumbnail if it's a video
+                      const getYoutubeThumbnail = (url: string | undefined) => {
+                        if (!url) return null;
+                        try {
+                          const urlObj = new URL(url);
+                          let videoId = "";
+                          if (urlObj.hostname.includes("youtube.com")) {
+                            videoId = urlObj.searchParams.get("v") || "";
+                          } else if (urlObj.hostname.includes("youtu.be")) {
+                            videoId = urlObj.pathname.slice(1);
+                          }
+                          return videoId ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` : null;
+                        } catch {
+                          return null;
+                        }
+                      };
+                      
+                      const thumbnail = item.type === "youtube" ? getYoutubeThumbnail(item.sourceUrl) : null;
+
+                      return (
+                        <button
+                          key={item.id}
+                          onClick={() => setSelectedContent(item.id)}
+                          className="group text-left bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700 hover:shadow-xl transition-all duration-300 relative overflow-hidden"
+                        >
+                          {/* Thumbnail for videos */}
+                          {thumbnail ? (
+                            <div className="relative aspect-video w-full overflow-hidden rounded-t-2xl bg-gray-100 dark:bg-gray-800">
+                              <img 
+                                src={thumbnail} 
+                                alt={item.name}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              />
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/0 to-black/0" />
+                              <div className="absolute bottom-3 left-3 flex items-center gap-2">
+                                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white shadow-lg">
+                                  <Youtube size={20} />
+                                </div>
+                              </div>
+                            </div>
+                          ) : (
+                            /* Icon for non-video content */
+                            <div className="p-6 pb-0">
+                              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white shadow-md group-hover:scale-110 transition-transform">
+                                <IconComponent size={24} />
+                              </div>
+                            </div>
+                          )}
+                          
+                          <div className="p-6">
+                            {/* Type badge */}
+                            <div className="flex items-center justify-between mb-3">
+                              <span className="text-[11px] px-3 py-1.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 font-medium uppercase tracking-wide">
+                                {item.type}
+                              </span>
+                            </div>
+
+                            {/* Title */}
+                            <h3 className="text-[16px] font-semibold text-gray-900 dark:text-white mb-2 line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                              {item.name}
+                            </h3>
+
+                            {/* Metadata */}
+                            <div className="flex items-center gap-2 text-[13px] text-gray-500 dark:text-gray-400">
+                              <span>{timeAgo(item.createdAt)}</span>
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>
 
-        {/* ═══ RESIZE HANDLE ═══ */}
-        {!aiPanelExpanded && (
-          <div
-            className={`resize-handle ${isDragging ? "dragging" : ""}`}
-            onMouseDown={handleResizeStart}
-          />
-        )}
+        {/* ═══ RIGHT SIDEBAR - AI Panel (toggleable) ═══ */}
+        {selectedItem && aiPanelOpen && (
+          <>
+            {/* ═══ RESIZE HANDLE ═══ */}
+            <div
+              className={`resize-handle ${isDragging ? "dragging" : ""}`}
+              onMouseDown={handleResizeStart}
+            />
 
-        {/* ═══ AI LEARNING PANEL (right, resizable) ═══ */}
-        <div
-          className={`bg-white dark:bg-[#0a0a0a] flex flex-col shrink-0 transition-[width] duration-100 ${aiPanelExpanded ? "flex-1" : ""}`}
-          style={aiPanelExpanded ? undefined : { width: aiPanelWidth }}
-        >
-          {/* Panel header with tabs */}
-          <div className="border-b border-[#eee] dark:border-[#1a1a1a] px-4 py-2 flex items-center justify-between shrink-0">
-            <div className="flex items-center gap-1 bg-[#f0f0f0] dark:bg-[#141414] rounded-lg p-0.5">
-              <button
-                onClick={() => setAIPanelTab("learn")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-medium transition-all ${aiPanelTab === "learn" ? "bg-white dark:bg-[#222] text-black dark:text-white shadow-sm" : "text-[#888] hover:text-[#555] dark:hover:text-[#ccc]"
-                  }`}
-              >
-                <Sparkles size={12} /> Learn
-              </button>
-              <button
-                onClick={() => setAIPanelTab("chat")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-medium transition-all ${aiPanelTab === "chat" ? "bg-white dark:bg-[#222] text-black dark:text-white shadow-sm" : "text-[#888] hover:text-[#555] dark:hover:text-[#ccc]"
-                  }`}
-              >
-                <MessageSquare size={12} /> Chat
-              </button>
-            </div>
-            <button onClick={() => setAIPanelExpanded(!aiPanelExpanded)} className="p-1.5 rounded-lg hover:bg-[#f0f0f0] dark:hover:bg-[#1a1a1a] transition-colors text-[#999]">
-              {aiPanelExpanded ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
-            </button>
-          </div>
-
-          {/* Panel content */}
-          <div className="flex-1 overflow-y-auto">
-
-            {/* ─── LEARN TAB ─── */}
-            {aiPanelTab === "learn" && (
-              <div className="p-4">
-                {/* Generate tool cards */}
-                <h4 className="text-[12px] font-semibold text-[#999] uppercase tracking-wider mb-3">Generate</h4>
-                <div className="grid grid-cols-2 gap-2 mb-6">
-                  <ToolCard icon={<Brain size={15} />} label="Quiz" color="#8b5cf6" loading={generatingQuiz} onClick={handleGenerateQuiz} />
-                  <ToolCard icon={<FileText size={15} />} label="Summary" color="#f59e0b" loading={generatingSummary} onClick={handleGenerateSummary} />
-                  <ToolCard icon={<Headphones size={15} />} label="Podcast" color="#ef4444" onClick={() => { }} />
-                  <ToolCard icon={<GraduationCap size={15} />} label="Flashcards" color="#3b82f6" onClick={() => { }} />
+            {/* ═══ AI PANEL ═══ */}
+            <div
+              className="bg-white dark:bg-gray-900 flex flex-col shrink-0 transition-[width] duration-100 border-l border-gray-200 dark:border-gray-800"
+              style={{ width: aiPanelWidth }}
+            >
+              {/* Panel header */}
+              <div className="border-b border-gray-200 dark:border-gray-800 px-5 py-4 flex items-center justify-between shrink-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-md bg-gradient-to-br from-green-400 to-green-500 flex items-center justify-center">
+                    <Sparkles size={14} className="text-white" />
+                  </div>
+                  <h3 className="text-[15px] font-semibold text-gray-900 dark:text-white">
+                    Learn Tab
+                  </h3>
                 </div>
-
-                {/* Generated summaries */}
-                {space.summaries.length > 0 && (
-                  <div className="mb-6">
-                    <div className="flex items-center justify-between mb-3">
-                      <h4 className="text-[12px] font-semibold text-[#999] uppercase tracking-wider">Summary</h4>
-                      <button onClick={handleGenerateSummary} disabled={generatingSummary} className="text-[11px] text-[#888] hover:text-black dark:hover:text-white transition-colors">
-                        {generatingSummary ? "..." : "↻ Refresh"}
-                      </button>
-                    </div>
-                    <div className="space-y-2">
-                      {space.summaries.map((s, i) => (
-                        <div key={s.id} className="p-3 rounded-xl border border-[#eee] dark:border-[#222] hover:bg-[#f8f8f8] dark:hover:bg-[#111] transition-colors cursor-default">
-                          <div className="flex items-start gap-2">
-                            <span className="text-[11px] font-bold w-5 h-5 rounded-md flex items-center justify-center shrink-0 mt-0.5 bg-[#f0f0f0] dark:bg-[#1a1a1a] text-[#666] dark:text-[#999]">
-                              {i + 1}
-                            </span>
-                            <div className="min-w-0">
-                              <p className="text-[12px] font-medium mb-1 dark:text-white">{s.title}</p>
-                              <div className="text-[11px] text-[#888] leading-[1.5] prose-ai line-clamp-3">
-                                <ReactMarkdown remarkPlugins={[remarkGfm]}>{s.content.slice(0, 200)}</ReactMarkdown>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Generated quiz */}
-                {quizTotal > 0 && (
-                  <div>
-                    <div className="flex items-center justify-between mb-3">
-                      <h4 className="text-[12px] font-semibold text-[#999] uppercase tracking-wider">Quiz ({quizTotal} questions)</h4>
-                      <div className="flex items-center gap-2">
-                        {quizSubmitted && (
-                          <button onClick={() => { setQuizAnswers({}); setQuizSubmitted(false); }} className="text-[11px] text-[#888] hover:text-black dark:hover:text-white transition-colors flex items-center gap-1">
-                            <RotateCcw size={10} /> Retry
-                          </button>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Progress */}
-                    <div className="mb-3">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-[11px] text-[#999]">{Object.keys(quizAnswers).length}/{quizTotal} answered</span>
-                        {quizSubmitted && (
-                          <span className="text-[12px] font-semibold" style={{ color: quizPercent >= 70 ? "#10b981" : quizPercent >= 40 ? "#f59e0b" : "#ef4444" }}>
-                            {quizPercent}%
-                          </span>
-                        )}
-                      </div>
-                      <div className="w-full h-1.5 bg-[#f0f0f0] dark:bg-[#1a1a1a] rounded-full overflow-hidden">
-                        <div className="h-full rounded-full transition-all duration-300" style={{
-                          width: `${(Object.keys(quizAnswers).length / quizTotal) * 100}%`,
-                          backgroundColor: quizSubmitted ? (quizPercent >= 70 ? "#10b981" : quizPercent >= 40 ? "#f59e0b" : "#ef4444") : "#8b5cf6",
-                        }} />
-                      </div>
-                    </div>
-
-                    {/* Questions */}
-                    <div className="space-y-3">
-                      {space.quizQuestions.map((q, qi) => (
-                        <div key={q.id} className="p-3 rounded-xl border border-[#eee] dark:border-[#222]">
-                          <p className="text-[12px] font-medium mb-2 dark:text-white">{qi + 1}. {q.question}</p>
-                          <div className="space-y-1">
-                            {q.options.map((opt: string, oi: number) => {
-                              const isSelected = quizAnswers[qi] === oi;
-                              const isCorrect = quizSubmitted && oi === q.correctIndex;
-                              const isWrong = quizSubmitted && isSelected && oi !== q.correctIndex;
-                              return (
-                                <button
-                                  key={oi}
-                                  onClick={() => !quizSubmitted && setQuizAnswers({ ...quizAnswers, [qi]: oi })}
-                                  className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left text-[11px] border transition-all ${isCorrect ? "border-green-400 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400"
-                                    : isWrong ? "border-red-400 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400"
-                                      : isSelected ? "border-purple-400 bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-400"
-                                        : "border-[#eee] dark:border-[#222] hover:border-[#ccc] dark:hover:border-[#444] hover:bg-[#f8f8f8] dark:hover:bg-[#111] dark:text-[#ccc]"
-                                    }`}
-                                  disabled={quizSubmitted}
-                                >
-                                  <span className="w-5 h-5 rounded-full border flex items-center justify-center text-[10px] shrink-0" style={{
-                                    borderColor: isCorrect ? "#4ade80" : isWrong ? "#f87171" : isSelected ? "#8b5cf6" : "#e5e5e5",
-                                    backgroundColor: isSelected && !quizSubmitted ? "#8b5cf6" : "transparent",
-                                    color: isSelected && !quizSubmitted ? "#fff" : undefined,
-                                  }}>
-                                    {isCorrect ? <CheckCircle2 size={12} className="text-green-500" /> : isWrong ? <XCircle size={12} className="text-red-500" /> : String.fromCharCode(65 + oi)}
-                                  </span>
-                                  {opt}
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-
-                    {!quizSubmitted && (
-                      <button onClick={() => setQuizSubmitted(true)} disabled={Object.keys(quizAnswers).length < quizTotal}
-                        className="mt-3 w-full py-2.5 rounded-xl bg-black dark:bg-white text-white dark:text-black text-[12px] font-medium hover:opacity-90 disabled:opacity-30 transition-opacity"
-                      >
-                        Submit Answers
-                      </button>
-                    )}
-
-                    {quizSubmitted && (
-                      <div className="mt-3 p-4 rounded-xl border border-[#eee] dark:border-[#222] text-center">
-                        <p className="text-[20px] font-bold mb-0.5 dark:text-white">{quizScore}/{quizTotal}</p>
-                        <p className="text-[11px] text-[#999]">
-                          {quizPercent >= 90 ? "🎉 Excellent!" : quizPercent >= 70 ? "👍 Great job!" : quizPercent >= 40 ? "💪 Keep going!" : "📖 Review & retry!"}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Empty state */}
-                {space.summaries.length === 0 && quizTotal === 0 && (
-                  <div className="text-center py-8">
-                    <div className="w-12 h-12 rounded-2xl bg-[#f0f0f0] dark:bg-[#1a1a1a] flex items-center justify-center mx-auto mb-3">
-                      <Sparkles size={20} className="text-[#ccc]" />
-                    </div>
-                    <p className="text-[13px] text-[#999] max-w-[200px] mx-auto">
-                      Click the tools above to generate AI-powered study materials.
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* ─── CHAT TAB ─── */}
-            {aiPanelTab === "chat" && (
-              <div className="flex flex-col h-full">
-                <div className="flex-1 overflow-y-auto px-5 py-5">
-                  <div className="space-y-6">
-                    {/* Welcome empty state */}
-                    {messages.length === 0 && (
-                      <div className="flex flex-col items-center pt-12 pb-6">
-                        <div className="w-10 h-10 rounded-full bg-[#121212] dark:bg-white flex items-center justify-center mb-4">
-                          <Sparkles size={18} className="text-white dark:text-black" />
-                        </div>
-                        <h3 className="text-[15px] font-semibold text-[#121212] dark:text-white mb-1">AI Tutor</h3>
-                        <p className="text-[13px] text-[#888] mb-6 text-center max-w-[240px] leading-relaxed">
-                          Ask anything about your content. I'll help you understand.
-                        </p>
-                        <div className="w-full space-y-2">
-                          {["Explain the key concepts", "Summarize the main ideas", "What should I focus on?"].map((q) => (
-                            <button key={q} onClick={() => setChatInput(q)}
-                              className="w-full text-left px-4 py-3 rounded-xl border border-[#e7e7e7] dark:border-[#222] text-[13px] text-[#555] dark:text-[#999] hover:bg-[#f6f6f6] dark:hover:bg-[#111] hover:text-[#121212] dark:hover:text-white transition-colors"
-                            >
-                              {q}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Messages */}
-                    {messages.map((msg) => (
-                      <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start gap-3"}`}>
-                        {msg.role === "ai" && (
-                          <div className="w-7 h-7 rounded-full bg-[#121212] dark:bg-white flex items-center justify-center shrink-0 mt-0.5">
-                            <Sparkles size={12} className="text-white dark:text-black" />
-                          </div>
-                        )}
-                        <div className="min-w-0 max-w-[88%] group">
-                          {msg.role === "user" ? (
-                            <div className="bg-[#f0f0f0] dark:bg-[#1a1a1a] text-[#121212] dark:text-[#e5e5e5] rounded-2xl rounded-br-md px-4 py-2.5 text-[13px] leading-[1.7]">
-                              <div className="whitespace-pre-line">
-                                <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
-                              </div>
-                            </div>
-                          ) : (
-                            <div>
-                              <div className="prose-ai text-[13.5px] text-[#333] dark:text-[#d0d0d0] leading-[1.75]">
-                                <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
-                              </div>
-                              <div className="flex items-center gap-1 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <CopyButton text={msg.content} />
-                                <button className="p-1 rounded-md hover:bg-[#f0f0f0] dark:hover:bg-[#1a1a1a] transition-colors"><ThumbsUp size={12} className="text-[#ccc] dark:text-[#444]" /></button>
-                                <button className="p-1 rounded-md hover:bg-[#f0f0f0] dark:hover:bg-[#1a1a1a] transition-colors"><ThumbsDown size={12} className="text-[#ccc] dark:text-[#444]" /></button>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-
-                    {/* Typing indicator */}
-                    {sendingChat && (
-                      <div className="flex gap-3">
-                        <div className="w-7 h-7 rounded-full bg-[#121212] dark:bg-white flex items-center justify-center shrink-0">
-                          <Sparkles size={12} className="text-white dark:text-black" />
-                        </div>
-                        <div className="pt-2">
-                          <div className="typing-dots"><span></span><span></span><span></span></div>
-                        </div>
-                      </div>
-                    )}
-                    <div ref={chatEndRef} />
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* ── Chat Input (always visible at bottom) ─────── */}
-          <div className="border-t border-[#eee] dark:border-[#1a1a1a] p-3 shrink-0">
-            {/* Quoted text chip */}
-            {quotedText && (
-              <div className="flex items-start gap-2 mb-2 px-3 py-2 bg-[#f6f6f6] dark:bg-[#141414] rounded-lg border-l-2 border-[#121212] dark:border-white">
-                <div className="flex-1 min-w-0">
-                  <p className="text-[10px] text-[#888] mb-0.5">Selected text</p>
-                  <p className="text-[12px] text-[#444] dark:text-[#aaa] line-clamp-2">{quotedText}</p>
-                </div>
-                <button onClick={() => setQuotedText(null)} className="p-0.5 rounded hover:bg-black/5 dark:hover:bg-white/5 shrink-0"><X size={12} className="text-[#999]" /></button>
-              </div>
-            )}
-            <div className="relative">
-              <div className="flex items-end gap-2 bg-[#f6f6f6] dark:bg-[#141414] rounded-2xl px-4 py-2.5 border border-transparent focus-within:border-[#d4d4d4] dark:focus-within:border-[#333] transition-colors">
-                <textarea
-                  value={chatInput}
-                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
-                    setChatInput(e.target.value);
-                    const v = e.target.value;
-                    const lastAt = v.lastIndexOf("@");
-                    if (lastAt >= 0) {
-                      const after = v.slice(lastAt + 1);
-                      if (!after.includes(" ") && after.length < 30) {
-                        const q = after.toLowerCase();
-                        const matches = space.contentItems.filter(ci => ci.name.toLowerCase().includes(q));
-                        setMentionResults(matches.length > 0 ? matches.slice(0, 5) : []);
-                        setShowMentions(matches.length > 0);
-                      } else {
-                        setShowMentions(false);
-                      }
-                    } else {
-                      setShowMentions(false);
-                    }
-                  }}
-                  onKeyDown={(e: React.KeyboardEvent<HTMLTextAreaElement>) => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), handleSendMessage())}
-                  placeholder="Ask anything..."
-                  className="flex-1 resize-none bg-transparent text-[13px] focus:outline-none placeholder:text-[#bbb] dark:placeholder:text-[#555] max-h-24 dark:text-white"
-                  rows={1}
-                  disabled={sendingChat}
-                  onFocus={() => { if (aiPanelTab !== "chat") setAIPanelTab("chat"); }}
-                />
-                <button onClick={handleSendMessage} disabled={!chatInput.trim() || sendingChat}
-                  className="w-8 h-8 rounded-full bg-[#121212] dark:bg-white text-white dark:text-black flex items-center justify-center hover:opacity-80 disabled:opacity-20 shrink-0 transition-opacity"
+                <button 
+                  onClick={() => setAIPanelOpen(false)} 
+                  className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-all text-gray-600 dark:text-gray-400"
+                  title="Close panel"
                 >
-                  {sendingChat ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+                  <X size={16} />
                 </button>
               </div>
-              {/* @ mention dropdown */}
-              {showMentions && mentionResults.length > 0 && (
-                <div className="absolute bottom-full left-0 right-0 mb-1 bg-white dark:bg-[#111] border border-[#eee] dark:border-[#222] rounded-xl shadow-lg overflow-hidden z-10">
-                  {mentionResults.map((ci) => (
-                    <button
-                      key={ci.id}
-                      className="flex items-center gap-2 w-full px-3 py-2 text-left text-[12px] hover:bg-[#f5f5f5] dark:hover:bg-[#1a1a1a] transition-colors"
-                      onMouseDown={(e) => {
-                        e.preventDefault();
-                        const lastAt = chatInput.lastIndexOf("@");
-                        setChatInput(chatInput.slice(0, lastAt) + "@" + ci.name + " ");
-                        setShowMentions(false);
-                      }}
-                    >
-                      <FileText size={13} className="text-[#888] shrink-0" />
-                      <span className="truncate dark:text-[#ccc]">{ci.name}</span>
-                      <span className="text-[10px] text-[#bbb] dark:text-[#555] ml-auto">{ci.type}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
 
-      {/* ── Selection Toolbar (floating) ──────────────────── */}
-      {selectionToolbar && (
-        <SelectionToolbar
-          position={{ x: selectionToolbar.x, y: selectionToolbar.y }}
-          text={selectionToolbar.text}
-          onAction={handleSelectionAction}
-          onClose={() => setSelectionToolbar(null)}
-        />
-      )}
+              {/* Panel content - Learn Tab style */}
+              <div className="flex-1 overflow-y-auto">
+                <div className="p-5 space-y-6">
+                  {/* Generate section */}
+                  <div>
+                    <h4 className="text-[14px] font-semibold text-gray-900 dark:text-white mb-3">Generate</h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        onClick={handleGenerateSummary}
+                        disabled={generatingSummary}
+                        className="flex flex-col items-center gap-2 p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all disabled:opacity-50"
+                      >
+                        <div className="w-10 h-10 rounded-lg bg-orange-100 dark:bg-orange-900/20 flex items-center justify-center">
+                          {generatingSummary ? (
+                            <Loader2 size={20} className="animate-spin text-orange-600" />
+                          ) : (
+                            <FileText size={20} className="text-orange-600" />
+                          )}
+                        </div>
+                        <span className="text-[13px] font-medium text-gray-900 dark:text-white">Summary</span>
+                      </button>
+
+                      <button
+                        onClick={handleGenerateQuiz}
+                        disabled={generatingQuiz}
+                        className="flex flex-col items-center gap-2 p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all disabled:opacity-50"
+                      >
+                        <div className="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/20 flex items-center justify-center">
+                          {generatingQuiz ? (
+                            <Loader2 size={20} className="animate-spin text-purple-600" />
+                          ) : (
+                            <Brain size={20} className="text-purple-600" />
+                          )}
+                        </div>
+                        <span className="text-[13px] font-medium text-gray-900 dark:text-white">Quiz</span>
+                      </button>
+
+                      <button
+                        disabled
+                        className="flex flex-col items-center gap-2 p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 opacity-50 cursor-not-allowed"
+                      >
+                        <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center">
+                          <GraduationCap size={20} className="text-blue-600" />
+                        </div>
+                        <span className="text-[13px] font-medium text-gray-900 dark:text-white">Flashcards</span>
+                      </button>
+
+                      <button
+                        disabled
+                        className="flex flex-col items-center gap-2 p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 opacity-50 cursor-not-allowed"
+                      >
+                        <div className="w-10 h-10 rounded-lg bg-red-100 dark:bg-red-900/20 flex items-center justify-center">
+                          <Headphones size={20} className="text-red-600" />
+                        </div>
+                        <span className="text-[13px] font-medium text-gray-900 dark:text-white">Podcast</span>
+                      </button>
+
+                      <button
+                        disabled
+                        className="flex flex-col items-center gap-2 p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 opacity-50 cursor-not-allowed"
+                      >
+                        <div className="w-10 h-10 rounded-lg bg-yellow-100 dark:bg-yellow-900/20 flex items-center justify-center">
+                          <FileText size={20} className="text-yellow-600" />
+                        </div>
+                        <span className="text-[13px] font-medium text-gray-900 dark:text-white">Notes</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Summaries */}
+                  {space.summaries.length > 0 && (
+                    <div>
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="text-[13px] font-semibold text-gray-700 dark:text-gray-300">Summary</h4>
+                        <button 
+                          onClick={handleGenerateSummary} 
+                          disabled={generatingSummary} 
+                          className="text-[12px] text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors disabled:opacity-50"
+                        >
+                          {generatingSummary ? "Generating..." : "Refresh"}
+                        </button>
+                      </div>
+                      <div className="space-y-3">
+                        {space.summaries.map((s) => (
+                          <div key={s.id} className="p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50">
+                            <p className="text-[13px] font-medium mb-2 text-gray-900 dark:text-white">{s.title}</p>
+                            <div className="text-[13px] text-gray-600 dark:text-gray-400 leading-relaxed prose-ai">
+                              <ReactMarkdown remarkPlugins={[remarkGfm]}>{s.content.slice(0, 300)}</ReactMarkdown>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Chat Section - Always visible */}
+                  <div>
+                    <h4 className="text-[13px] font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+                      <MessageSquare size={16} />
+                      Chat with AI
+                    </h4>
+                    
+                    {/* Chat messages */}
+                    <div className="space-y-3 mb-4 max-h-[400px] overflow-y-auto">
+                      {messages.length === 0 ? (
+                        <div className="text-center py-8 text-gray-500 dark:text-gray-400 text-[13px]">
+                          Ask me anything about this content
+                        </div>
+                      ) : (
+                        messages.map((msg) => (
+                          <div key={msg.id} className={`flex gap-3 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                            {msg.role === "ai" && (
+                              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white shrink-0">
+                                <Sparkles size={14} />
+                              </div>
+                            )}
+                            <div className={`max-w-[85%] ${msg.role === "user" ? "order-first" : ""}`}>
+                              <div className={`p-3 rounded-xl ${
+                                msg.role === "user"
+                                  ? "bg-gray-900 dark:bg-white text-white dark:text-gray-900"
+                                  : "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white"
+                              }`}>
+                                <ReactMarkdown 
+                                  remarkPlugins={[remarkGfm]}
+                                  className="text-[13px] leading-relaxed prose-ai"
+                                >
+                                  {msg.content}
+                                </ReactMarkdown>
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                      <div ref={chatEndRef} />
+                    </div>
+
+                    {/* Chat input */}
+                    <div className="sticky bottom-0 bg-white dark:bg-gray-900 pt-3 border-t border-gray-200 dark:border-gray-800">
+                      {quotedText && (
+                        <div className="mb-2 p-2 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 flex items-start justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[11px] text-blue-600 dark:text-blue-400 font-medium mb-1">Quoted text:</p>
+                            <p className="text-[12px] text-gray-700 dark:text-gray-300 line-clamp-2">{quotedText}</p>
+                          </div>
+                          <button onClick={() => setQuotedText(null)} className="p-1 hover:bg-blue-100 dark:hover:bg-blue-900/40 rounded transition-colors">
+                            <X size={14} className="text-blue-600 dark:text-blue-400" />
+                          </button>
+                        </div>
+                      )}
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={chatInput}
+                          onChange={(e) => setChatInput(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" && !e.shiftKey) {
+                              e.preventDefault();
+                              handleSendChat();
+                            }
+                          }}
+                          placeholder="Ask a question..."
+                          disabled={sendingChat}
+                          className="flex-1 px-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 text-[14px] outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 transition-all disabled:opacity-50 text-gray-900 dark:text-white placeholder:text-gray-400"
+                        />
+                        <button
+                          onClick={handleSendChat}
+                          disabled={!chatInput.trim() || sendingChat}
+                          className="px-4 py-2.5 rounded-lg bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {sendingChat ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Toggle AI Panel Button (when closed and content is selected) */}
+        {selectedItem && !aiPanelOpen && (
+          <button
+            onClick={() => setAIPanelOpen(true)}
+            className="fixed right-6 bottom-6 w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 text-white shadow-lg hover:shadow-xl transition-all flex items-center justify-center z-50 hover:scale-110"
+            title="Open AI Assistant"
+          >
+            <Sparkles size={24} />
+          </button>
+        )}
+      </div>
     </div>
   );
 }

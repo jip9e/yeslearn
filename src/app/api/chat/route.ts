@@ -231,10 +231,19 @@ ${sourceRefInstructions}`;
             },
             { status: 201 }
         );
-    } catch (error) {
-        console.error("POST /api/chat error:", error);
+    } catch (error: any) {
+        // Enhanced error reporting for Copilot API errors
+        let errorDetails = error instanceof Error ? error.message : String(error);
+        if (error && error.response) {
+            errorDetails += `\nStatus: ${error.response.status}`;
+            try {
+                const body = await error.response.text();
+                errorDetails += `\nBody: ${body}`;
+            } catch {}
+        }
+        console.error("POST /api/chat error:", errorDetails);
         return NextResponse.json(
-            { error: error instanceof Error ? error.message : "Failed to process message" },
+            { error: errorDetails },
             { status: 500 }
         );
     }

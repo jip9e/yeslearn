@@ -186,7 +186,7 @@ export default function SpaceDetailPage() {
     }
 
     try {
-      const tempUserMsg: ChatMessage = { id: "temp-user", role: "user", content: userMsg, createdAt: new Date().toISOString() };
+      const tempUserMsg: ChatMessage = { id: `temp-user-${Date.now()}-${Math.random().toString(36).slice(2,8)}`, role: "user", content: userMsg, createdAt: new Date().toISOString() };
       setMessages((prev) => [...prev, tempUserMsg]);
 
       const res = await fetch("/api/chat", {

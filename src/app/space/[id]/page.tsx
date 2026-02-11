@@ -272,10 +272,10 @@ export default function SpaceDetailPage() {
   const dragRef = useRef<{ startX: number; startWidth: number } | null>(null);
   const mainContainerRef = useRef<HTMLDivElement>(null);
 
-  // Responsive: detect narrow screens (iPad / mobile)
+  // Responsive: detect phone screens (not tablets)
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 900);
+    const check = () => setIsMobile(window.innerWidth < 600);
     check();
     window.addEventListener("resize", check);
     return () => window.removeEventListener("resize", check);
@@ -350,6 +350,8 @@ export default function SpaceDetailPage() {
     e.preventDefault();
     const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
     dragRef.current = { startX: clientX, startWidth: aiPanelWidth };
+    // Set initial CSS variable so panel doesn't jump
+    mainContainerRef.current?.style.setProperty("--ai-panel-w", `${aiPanelWidth}px`);
     setIsDragging(true);
   }, [aiPanelWidth]);
 
@@ -358,20 +360,29 @@ export default function SpaceDetailPage() {
 
     const handleMove = (e: MouseEvent | TouchEvent) => {
       if (!dragRef.current) return;
+      e.preventDefault();
       const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
       const delta = dragRef.current.startX - clientX;
       const containerW = mainContainerRef.current?.offsetWidth || 1200;
       const minW = 280;
       const maxW = Math.min(containerW * 0.7, 800);
-      setAiPanelWidth(Math.max(minW, Math.min(maxW, dragRef.current.startWidth + delta)));
+      const newW = Math.max(minW, Math.min(maxW, dragRef.current.startWidth + delta));
+      // Update via CSS variable — no React re-render during drag
+      mainContainerRef.current?.style.setProperty("--ai-panel-w", `${newW}px`);
     };
 
     const handleEnd = () => {
+      // Commit final width to React state
+      const cssW = mainContainerRef.current?.style.getPropertyValue("--ai-panel-w");
+      if (cssW) {
+        setAiPanelWidth(parseInt(cssW, 10));
+        mainContainerRef.current?.style.removeProperty("--ai-panel-w");
+      }
       setIsDragging(false);
       dragRef.current = null;
     };
 
-    document.addEventListener("mousemove", handleMove);
+    document.addEventListener("mousemove", handleMove, { passive: false });
     document.addEventListener("mouseup", handleEnd);
     document.addEventListener("touchmove", handleMove, { passive: false });
     document.addEventListener("touchend", handleEnd);
@@ -561,7 +572,7 @@ export default function SpaceDetailPage() {
         )}
 
         {/* ═══ MAIN CONTENT AREA ═══ */}
-        <div className="flex-1 overflow-hidden bg-white dark:bg-[#0a0a0a] transition-all duration-300 flex flex-col" ref={contentRef}>
+        <div className={`flex-1 overflow-hidden bg-white dark:bg-[#0a0a0a] flex flex-col${isDragging ? "" : " transition-all duration-300"}`} ref={contentRef} style={isDragging ? { pointerEvents: "none" } : undefined}>
           {selectedItem ? (
             <>
               {/* Compact content header */}
@@ -828,10 +839,10 @@ export default function SpaceDetailPage() {
               />
             )}
 
-            {/* ═══ RESIZE HANDLE (desktop only) ═══ */}
+            {/* ═══ RESIZE HANDLE ═══ */}
             {!isMobile && (
               <div
-                className={`w-1 cursor-col-resize hover:bg-[#8b5cf6]/30 active:bg-[#8b5cf6]/50 transition-colors ${isDragging ? "bg-[#8b5cf6]/50" : "bg-transparent"}`}
+                className={`w-2 cursor-col-resize hover:bg-[#8b5cf6]/30 active:bg-[#8b5cf6]/50 transition-colors touch-none ${isDragging ? "bg-[#8b5cf6]/50" : "bg-transparent"}`}
                 onMouseDown={handleResizeStart}
                 onTouchStart={handleResizeStart}
               />
@@ -842,9 +853,9 @@ export default function SpaceDetailPage() {
               className={
                 isMobile
                   ? "fixed inset-y-0 right-0 z-50 w-[85vw] max-w-[420px] bg-[#0d0d12] flex flex-col border-l border-[#1a1a2e] shadow-2xl animate-in slide-in-from-right duration-200"
-                  : "bg-[#0d0d12] flex flex-col shrink-0 transition-[width] duration-100 border-l border-[#1a1a2e]"
+                  : `bg-[#0d0d12] flex flex-col shrink-0 border-l border-[#1a1a2e]${isDragging ? "" : " transition-[width] duration-100"}`
               }
-              style={isMobile ? undefined : { width: aiPanelWidth }}
+              style={isMobile ? undefined : { width: isDragging ? "var(--ai-panel-w)" : aiPanelWidth }}
             >
               {/* ─── Tab bar ───────────────────────── */}
               <div className="flex items-center justify-between px-2 pt-2 pb-0 shrink-0 bg-[#0d0d12]">

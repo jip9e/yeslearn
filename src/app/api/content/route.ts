@@ -69,7 +69,8 @@ export async function POST(req: NextRequest) {
 
                 // Extract text
                 // eslint-disable-next-line @typescript-eslint/no-require-imports
-                const pdfParse = require("pdf-parse");
+                const pdfParseModule = require("pdf-parse");
+                const pdfParse = pdfParseModule.default || pdfParseModule;
                 const pdfData = await pdfParse(buffer);
                 extractedText = pdfData.text;
                 metadata = {

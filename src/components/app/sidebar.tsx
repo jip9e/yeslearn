@@ -23,9 +23,11 @@ interface Space {
 }
 
 // Context for sidebar collapse state
-const SidebarContext = createContext<{ collapsed: boolean; toggle: () => void }>({
+const SidebarContext = createContext<{ collapsed: boolean; toggle: () => void; mobileOpen: boolean; closeMobile: () => void }>({
   collapsed: false,
   toggle: () => { },
+  mobileOpen: false,
+  closeMobile: () => { },
 });
 
 export function useSidebar() {
@@ -34,6 +36,7 @@ export function useSidebar() {
 
 export function SidebarProvider({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem("sidebar-collapsed");
@@ -41,14 +44,21 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const toggle = () => {
-    setCollapsed((c) => {
-      localStorage.setItem("sidebar-collapsed", String(!c));
-      return !c;
-    });
+    // On mobile, toggle the overlay
+    if (window.innerWidth < 768) {
+      setMobileOpen((o) => !o);
+    } else {
+      setCollapsed((c) => {
+        localStorage.setItem("sidebar-collapsed", String(!c));
+        return !c;
+      });
+    }
   };
 
+  const closeMobile = () => setMobileOpen(false);
+
   return (
-    <SidebarContext.Provider value={{ collapsed, toggle }}>
+    <SidebarContext.Provider value={{ collapsed, toggle, mobileOpen, closeMobile }}>
       {children}
     </SidebarContext.Provider>
   );
@@ -56,7 +66,7 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
 
 export default function AppSidebar() {
   const pathname = usePathname();
-  const { collapsed, toggle } = useSidebar();
+  const { collapsed, toggle, mobileOpen, closeMobile } = useSidebar();
   const [spacesOpen, setSpacesOpen] = useState(true);
   const [spaces, setSpaces] = useState<Space[]>([]);
   const [loading, setLoading] = useState(true);
@@ -74,14 +84,40 @@ export default function AppSidebar() {
       .catch(() => setLoading(false));
   }, [pathname]);
 
+  // Close mobile sidebar on navigation
+  useEffect(() => {
+    closeMobile();
+  }, [pathname]);
+
   // Get initial letter for space icon
   const getInitial = (name: string) => name.charAt(0).toUpperCase();
 
   return (
-    <aside
-      className={`h-screen bg-white dark:bg-[#0a0a0a] border-r border-[#eee] dark:border-[#1a1a1a] flex flex-col shrink-0 overflow-hidden transition-all duration-300 ease-in-out ${collapsed ? "w-[60px]" : "w-[240px]"
-        }`}
-    >
+    <>
+      {/* Mobile overlay backdrop */}
+      {mobileOpen && (
+        <div
+          className="fixed inset-0 bg-black/40 z-40 md:hidden"
+          onClick={closeMobile}
+        />
+      )}
+
+      {/* Mobile toggle button */}
+      <button
+        onClick={toggle}
+        className="fixed top-3 left-3 z-30 p-2 rounded-lg bg-white dark:bg-[#0a0a0a] border border-[#eee] dark:border-[#1a1a1a] shadow-sm md:hidden"
+      >
+        <PanelLeftOpen size={16} className="text-[#888]" />
+      </button>
+
+      <aside
+        className={`
+          h-screen bg-white dark:bg-[#0a0a0a] border-r border-[#eee] dark:border-[#1a1a1a] flex flex-col shrink-0 overflow-hidden transition-all duration-300 ease-in-out
+          ${collapsed ? "w-[60px]" : "w-[240px]"}
+          max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:z-50 max-md:w-[260px] max-md:shadow-2xl
+          ${mobileOpen ? "max-md:translate-x-0" : "max-md:-translate-x-full"}
+        `}
+      >
       {/* Header */}
       <div className="px-3 py-3 flex items-center justify-between shrink-0">
         {!collapsed && (
@@ -203,5 +239,6 @@ export default function AppSidebar() {
         </Link>
       </div>
     </aside>
+    </>
   );
 }

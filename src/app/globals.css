@@ -370,13 +370,23 @@
 
   /* ── Panel Resize Handle ─────────────────────────────── */
   .resize-handle {
-    width: 6px;
+    width: 8px;
     cursor: col-resize;
     position: relative;
     flex-shrink: 0;
     z-index: 10;
     background: transparent;
     transition: background-color 0.15s ease;
+    touch-action: none;
+    -webkit-touch-callout: none;
+    user-select: none;
+  }
+
+  /* Larger touch target on touch devices */
+  @media (pointer: coarse) {
+    .resize-handle {
+      width: 16px;
+    }
   }
 
   .resize-handle::after {
@@ -385,17 +395,18 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 3px;
-    height: 32px;
-    border-radius: 2px;
+    width: 4px;
+    height: 40px;
+    border-radius: 4px;
     background: #d4d4d4;
-    opacity: 0;
-    transition: opacity 0.15s ease;
+    opacity: 1;
+    transition: opacity 0.15s ease, background 0.15s ease;
   }
 
   .resize-handle:hover::after,
   .resize-handle.dragging::after {
     opacity: 1;
+    background: #999;
   }
 
   .resize-handle:hover {
@@ -407,7 +418,7 @@
   }
 
   .resize-handle.dragging::after {
-    background: #888;
+    background: #666;
   }
 
   :is(.dark) .resize-handle::after {
@@ -418,12 +429,13 @@
     background: #1a1a1a;
   }
 
-  :is(.dark) .resize-handle.dragging {
-    background: #222;
-  }
-
+  :is(.dark) .resize-handle:hover::after,
   :is(.dark) .resize-handle.dragging::after {
     background: #888;
+  }
+
+  :is(.dark) .resize-handle.dragging {
+    background: #222;
   }
 
   /* ── Warm background utilities ────────────────────────── */

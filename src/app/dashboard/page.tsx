@@ -83,20 +83,20 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="p-8 max-w-[1200px] mx-auto">
+      <div className="p-4 sm:p-6 md:p-8 max-w-[1200px] mx-auto pl-14 md:pl-8">
         <div className="space-y-8">
           <div className="space-y-3">
-            <div className="h-10 bg-gradient-to-r from-gray-200 to-gray-100 dark:from-gray-800 dark:to-gray-900 rounded-lg w-80 animate-pulse" />
-            <div className="h-5 bg-gradient-to-r from-gray-200 to-gray-100 dark:from-gray-800 dark:to-gray-900 rounded w-96 animate-pulse" />
+            <div className="h-10 bg-gray-200 dark:bg-gray-800 rounded-lg w-64 sm:w-80 animate-pulse" />
+            <div className="h-5 bg-gray-100 dark:bg-gray-900 rounded w-72 sm:w-96 animate-pulse" />
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="h-32 bg-gradient-to-br from-gray-100 to-gray-50 dark:from-gray-900 dark:to-gray-800 rounded-2xl animate-pulse" />
+              <div key={i} className="h-32 bg-gray-100 dark:bg-gray-900 rounded-xl animate-pulse" />
             ))}
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
             {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="h-28 bg-gradient-to-br from-gray-100 to-gray-50 dark:from-gray-900 dark:to-gray-800 rounded-xl animate-pulse" />
+              <div key={i} className="h-28 bg-gray-100 dark:bg-gray-900 rounded-xl animate-pulse" />
             ))}
           </div>
         </div>
@@ -105,8 +105,8 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950">
-      <div className="p-8 max-w-[1200px] mx-auto space-y-10">
+    <div className="min-h-screen bg-white dark:bg-[#0a0a0a]">
+      <div className="p-4 sm:p-6 md:p-8 max-w-[1200px] mx-auto space-y-8 md:space-y-10 pl-14 md:pl-8">
         {/* Welcome Header with Animation */}
         <motion.div 
           initial={{ opacity: 0, y: -20 }}
@@ -115,10 +115,10 @@ export default function DashboardPage() {
           className="space-y-2"
         >
           <div className="flex items-center gap-3">
-            <h1 className="text-[32px] font-bold tracking-tight bg-gradient-to-br from-gray-900 to-gray-600 dark:from-white dark:to-gray-400 bg-clip-text text-transparent">
+            <h1 className="text-[24px] sm:text-[32px] font-bold tracking-tight text-gray-900 dark:text-white">
               Welcome to YesLearn
             </h1>
-            <Sparkles className="w-6 h-6 text-yellow-500 animate-pulse" aria-hidden="true" />
+            <Sparkles className="w-5 h-5 text-gray-400" aria-hidden="true" />
           </div>
           <p className="text-gray-600 dark:text-gray-400 text-[16px]">
             {spaces.length > 0
@@ -132,41 +132,33 @@ export default function DashboardPage() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.1 }}
-          className="grid grid-cols-1 sm:grid-cols-3 gap-6"
+          className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6"
         >
           {[
-            { icon: BookOpen, value: stats?.spaceCount || 0, label: "Active Spaces", color: "from-blue-500 to-cyan-500" },
-            { icon: BarChart3, value: stats?.itemCount || 0, label: "Total Items", color: "from-purple-500 to-pink-500" },
-            { icon: Zap, value: stats?.quizCount || 0, label: "Quizzes Completed", color: "from-orange-500 to-red-500" },
+            { icon: BookOpen, value: stats?.spaceCount || 0, label: "Active Spaces" },
+            { icon: BarChart3, value: stats?.itemCount || 0, label: "Total Items" },
+            { icon: Zap, value: stats?.quizCount || 0, label: "Quizzes Completed" },
           ].map((stat, index) => (
             <motion.div
               key={stat.label}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.1 + index * 0.1 }}
-              whileHover={{ scale: 1.02, y: -4 }}
-              className="group relative bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6 shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden"
+              className="group relative bg-white dark:bg-[#111] rounded-xl border border-gray-200 dark:border-gray-800 p-5 sm:p-6 transition-all duration-300 overflow-hidden"
             >
-              {/* Gradient background on hover */}
-              <div className={`absolute inset-0 bg-gradient-to-br ${stat.color} opacity-0 group-hover:opacity-5 transition-opacity duration-300`} />
-              
-              <div className="relative flex items-center gap-5">
-                <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${stat.color} p-0.5 shadow-lg`}>
-                  <div className="w-full h-full rounded-xl bg-white dark:bg-gray-900 flex items-center justify-center">
-                    <stat.icon 
-                      size={24} 
-                      className={`bg-gradient-to-br ${stat.color} bg-clip-text text-transparent`}
-                      aria-hidden="true"
-                    />
-                    {/* Accessible fallback for screen readers */}
-                    <span className="sr-only">{stat.label} icon</span>
-                  </div>
+              <div className="relative flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                  <stat.icon 
+                    size={22} 
+                    className="text-gray-600 dark:text-gray-400"
+                    aria-hidden="true"
+                  />
                 </div>
                 <div>
-                  <p className="text-[28px] font-bold text-gray-900 dark:text-white mb-0.5">
+                  <p className="text-[24px] sm:text-[28px] font-bold text-gray-900 dark:text-white mb-0.5">
                     {stat.value}
                   </p>
-                  <p className="text-[13px] text-gray-500 dark:text-gray-400 font-medium">
+                  <p className="text-[12px] sm:text-[13px] text-gray-500 dark:text-gray-400 font-medium">
                     {stat.label}
                   </p>
                 </div>
@@ -192,7 +184,7 @@ export default function DashboardPage() {
               <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
             </Link>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
             {QUICK_ACTIONS.map((action, index) => (
               <motion.div
                 key={action.label}
@@ -206,11 +198,11 @@ export default function DashboardPage() {
                   href={action.href}
                   className="group block bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-5 hover:border-gray-300 dark:hover:border-gray-700 hover:shadow-lg transition-all duration-300"
                 >
-                  <div className="flex flex-col items-center gap-4">
-                    <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-gray-100 to-gray-50 dark:from-gray-800 dark:to-gray-900 flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-sm">
-                      <action.icon size={24} className="text-gray-700 dark:text-gray-300" />
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
+                      <action.icon size={22} className="text-gray-700 dark:text-gray-300" />
                     </div>
-                    <span className="text-[14px] font-medium text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white transition-colors text-center">
+                    <span className="text-[13px] sm:text-[14px] font-medium text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white transition-colors text-center">
                       {action.label}
                     </span>
                   </div>
@@ -236,7 +228,7 @@ export default function DashboardPage() {
               <Plus size={16} /> New Space
             </Link>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
             {spaces.map((space, index) => (
               <motion.div
                 key={space.id}
@@ -250,16 +242,16 @@ export default function DashboardPage() {
                   className="group block bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6 hover:border-gray-300 dark:hover:border-gray-700 hover:shadow-xl transition-all duration-300"
                 >
                   <div className="flex items-center gap-4 mb-4">
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-[18px] font-bold shadow-lg">
+                    <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-black dark:bg-white flex items-center justify-center text-white dark:text-black text-[16px] sm:text-[18px] font-bold">
                       {space.name.charAt(0).toUpperCase()}
                     </div>
-                    <h3 className="text-[17px] font-semibold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors flex-1 truncate">
+                    <h3 className="text-[15px] sm:text-[17px] font-semibold text-gray-900 dark:text-white transition-colors flex-1 truncate">
                       {space.name}
                     </h3>
                   </div>
                   <div className="flex items-center justify-between pt-3 border-t border-gray-100 dark:border-gray-800">
                     <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-green-500" />
+                      <div className="w-2 h-2 rounded-full bg-gray-400 dark:bg-gray-600" />
                       <span className="text-[13px] text-gray-600 dark:text-gray-400">
                         {space.itemCount} item{space.itemCount !== 1 ? 's' : ''}
                       </span>
@@ -321,7 +313,7 @@ export default function DashboardPage() {
                         <IconComponent size={20} className="text-gray-600 dark:text-gray-400" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-[15px] font-medium truncate text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                        <p className="text-[14px] sm:text-[15px] font-medium truncate text-gray-900 dark:text-white transition-colors">
                           {item.name}
                         </p>
                         <p className="text-[13px] text-gray-500 dark:text-gray-400 mt-0.5">{item.spaceName}</p>

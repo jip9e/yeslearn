@@ -26,10 +26,10 @@ interface ContentType {
 }
 
 const CONTENT_TYPES: ContentType[] = [
-  { id: "youtube", label: "YouTube Video", icon: Youtube, color: "text-red-500", bg: "bg-red-50", description: "Paste a YouTube URL to extract the transcript" },
-  { id: "pdf", label: "PDF / Document", icon: FileText, color: "text-blue-500", bg: "bg-blue-50", description: "Upload a PDF file to extract text content" },
-  { id: "website", label: "Website URL", icon: Globe, color: "text-green-500", bg: "bg-green-50", description: "Paste a website URL to extract its content" },
-  { id: "text", label: "Text / Notes", icon: FileText, color: "text-orange-500", bg: "bg-orange-50", description: "Paste or type text content directly" },
+  { id: "youtube", label: "YouTube Video", icon: Youtube, color: "text-gray-700 dark:text-gray-300", bg: "bg-gray-100 dark:bg-gray-800", description: "Paste a YouTube URL to extract the transcript" },
+  { id: "pdf", label: "PDF / Document", icon: FileText, color: "text-gray-700 dark:text-gray-300", bg: "bg-gray-100 dark:bg-gray-800", description: "Upload a PDF file to extract text content" },
+  { id: "website", label: "Website URL", icon: Globe, color: "text-gray-700 dark:text-gray-300", bg: "bg-gray-100 dark:bg-gray-800", description: "Paste a website URL to extract its content" },
+  { id: "text", label: "Text / Notes", icon: FileText, color: "text-gray-700 dark:text-gray-300", bg: "bg-gray-100 dark:bg-gray-800", description: "Paste or type text content directly" },
 ];
 
 interface Space {
@@ -148,9 +148,9 @@ export default function AddContentPage() {
 
   if (success) {
     return (
-      <div className="p-8 max-w-[640px] mx-auto flex flex-col items-center justify-center min-h-[50vh] gap-4">
-        <div className="w-16 h-16 rounded-full bg-green-50 flex items-center justify-center">
-          <Check size={32} className="text-green-500" />
+      <div className="p-4 sm:p-6 md:p-8 max-w-[640px] mx-auto flex flex-col items-center justify-center min-h-[50vh] gap-4 pl-14 md:pl-8">
+        <div className="w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+          <Check size={32} className="text-gray-900 dark:text-white" />
         </div>
         <h2 className="text-[20px] font-semibold">Content Added!</h2>
         <p className="text-[14px] text-[#999]">Redirecting to your space...</p>
@@ -159,13 +159,13 @@ export default function AddContentPage() {
   }
 
   return (
-    <div className="p-8 max-w-[640px] mx-auto">
-      <Link href="/dashboard" className="inline-flex items-center gap-2 text-[13px] text-[#999] hover:text-black mb-6">
+    <div className="p-4 sm:p-6 md:p-8 max-w-[640px] mx-auto pl-14 md:pl-8">
+      <Link href="/dashboard" className="inline-flex items-center gap-2 text-[13px] text-[#999] hover:text-black dark:hover:text-white mb-6">
         <ArrowLeft size={14} /> Back to Dashboard
       </Link>
 
-      <h1 className="text-[28px] font-bold tracking-tight mb-1">Add Content</h1>
-      <p className="text-[#666] text-[15px] mb-8">Add learning materials to your space.</p>
+      <h1 className="text-[22px] sm:text-[28px] font-bold tracking-tight mb-1 dark:text-white">Add Content</h1>
+      <p className="text-[#666] dark:text-[#999] text-[14px] sm:text-[15px] mb-6 sm:mb-8">Add learning materials to your space.</p>
 
       {error && (
         <div className="mb-4 p-3 rounded-xl bg-red-50 text-red-600 text-[13px] flex items-center gap-2">
@@ -270,7 +270,7 @@ export default function AddContentPage() {
             />
             {file ? (
               <div className="flex items-center gap-3 p-4 rounded-xl border border-[#e5e5e5] bg-white">
-                <FileText size={20} className="text-blue-500" />
+                <FileText size={20} className="text-gray-600 dark:text-gray-400" />
                 <div className="flex-1 min-w-0">
                   <p className="text-[13px] font-medium truncate">{file.name}</p>
                   <p className="text-[11px] text-[#999]">{(file.size / 1024 / 1024).toFixed(2)} MB</p>

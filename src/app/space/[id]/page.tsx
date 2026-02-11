@@ -232,6 +232,15 @@ export default function SpaceDetailPage() {
   const dragRef = useRef<{ startX: number; startWidth: number } | null>(null);
   const mainContainerRef = useRef<HTMLDivElement>(null);
 
+  // Responsive: detect narrow screens (iPad / mobile)
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 900);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+
   /* scroll chat */
   const scrollToBottom = useCallback(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -278,34 +287,40 @@ export default function SpaceDetailPage() {
   }, [handleTextSelection]);
 
   /* ── Resize drag handlers ────────────────────────────── */
-  const handleResizeStart = useCallback((e: React.MouseEvent) => {
+  const handleResizeStart = useCallback((e: React.MouseEvent | React.TouchEvent) => {
     e.preventDefault();
-    dragRef.current = { startX: e.clientX, startWidth: aiPanelWidth };
+    const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
+    dragRef.current = { startX: clientX, startWidth: aiPanelWidth };
     setIsDragging(true);
   }, [aiPanelWidth]);
 
   useEffect(() => {
     if (!isDragging) return;
 
-    const handleMouseMove = (e: MouseEvent) => {
+    const handleMove = (e: MouseEvent | TouchEvent) => {
       if (!dragRef.current) return;
-      const delta = dragRef.current.startX - e.clientX;
+      const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
+      const delta = dragRef.current.startX - clientX;
       const containerW = mainContainerRef.current?.offsetWidth || 1200;
-      const minW = 300;
-      const maxW = Math.min(containerW * 0.65, 800);
+      const minW = 280;
+      const maxW = Math.min(containerW * 0.7, 800);
       setAiPanelWidth(Math.max(minW, Math.min(maxW, dragRef.current.startWidth + delta)));
     };
 
-    const handleMouseUp = () => {
+    const handleEnd = () => {
       setIsDragging(false);
       dragRef.current = null;
     };
 
-    document.addEventListener("mousemove", handleMouseMove);
-    document.addEventListener("mouseup", handleMouseUp);
+    document.addEventListener("mousemove", handleMove);
+    document.addEventListener("mouseup", handleEnd);
+    document.addEventListener("touchmove", handleMove, { passive: false });
+    document.addEventListener("touchend", handleEnd);
     return () => {
-      document.removeEventListener("mousemove", handleMouseMove);
-      document.removeEventListener("mouseup", handleMouseUp);
+      document.removeEventListener("mousemove", handleMove);
+      document.removeEventListener("mouseup", handleEnd);
+      document.removeEventListener("touchmove", handleMove);
+      document.removeEventListener("touchend", handleEnd);
     };
   }, [isDragging]);
 
@@ -394,10 +409,10 @@ export default function SpaceDetailPage() {
 
   const getTypeIcon = (type: string) => {
     switch (type) {
-      case "youtube": return <Youtube size={14} className="text-red-500" />;
-      case "pdf": return <FileText size={14} className="text-blue-500" />;
-      case "website": return <Globe size={14} className="text-green-500" />;
-      case "audio": return <Mic size={14} className="text-purple-500" />;
+      case "youtube": return <Youtube size={14} />;
+      case "pdf": return <FileText size={14} />;
+      case "website": return <Globe size={14} />;
+      case "audio": return <Mic size={14} />;
       default: return <FileText size={14} />;
     }
   };
@@ -426,70 +441,45 @@ export default function SpaceDetailPage() {
   /* ════════════════════════ RENDER ══════════════════════ */
 
   return (
-    <div className="h-full flex flex-col bg-gradient-to-br from-gray-50 via-white to-gray-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950">
-      {/* ── Clean Top Bar ───────────────────────────────────────── */}
-      <div className="border-b border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg px-6 py-4 flex items-center justify-between shrink-0 shadow-sm">
-        <div className="flex items-center gap-4">
-          <Link href="/dashboard" className="p-2 rounded-lg text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-all">
-            <ArrowLeft size={20} />
-          </Link>
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-[16px] font-bold shadow-lg">
-              {space.name.charAt(0).toUpperCase()}
-            </div>
-            <div>
-              <h1 className="font-semibold text-[18px] text-gray-900 dark:text-white">{space.name}</h1>
-              {space.description && (
-                <p className="text-[13px] text-gray-500 dark:text-gray-400">{space.description}</p>
-              )}
-            </div>
-          </div>
-        </div>
-        <div className="flex items-center gap-3">
-          <Link 
-            href={`/dashboard/add?spaceId=${space.id}`} 
-            className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-[14px] font-medium hover:opacity-90 transition-all shadow-sm hover:shadow-md"
-          >
-            <Plus size={16} /> Add Content
-          </Link>
-        </div>
-      </div>
-
-      {/* ── Main Content Area ─────────────────────────── */}
-      <div className="flex-1 flex overflow-hidden" ref={mainContainerRef}>
+    <div className="h-full flex bg-white dark:bg-[#0a0a0a]" ref={mainContainerRef}>
 
         {/* ═══ MAIN CONTENT AREA ═══ */}
-        <div className="flex-1 overflow-hidden bg-gradient-to-br from-gray-50 to-white dark:from-gray-950 dark:to-gray-900 transition-all duration-300 flex flex-col" ref={contentRef}>
+        <div className="flex-1 overflow-hidden bg-white dark:bg-[#0a0a0a] transition-all duration-300 flex flex-col" ref={contentRef}>
           {selectedItem ? (
             <>
-              {/* Content header with back button */}
-              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm shrink-0">
-                <div className="flex items-center gap-3">
+              {/* Compact content header */}
+              <div className="flex items-center justify-between px-4 py-2 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-[#0a0a0a] shrink-0">
+                <div className="flex items-center gap-2">
                   <button
                     onClick={() => setSelectedContent(null)}
-                    className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-all text-gray-600 dark:text-gray-400"
+                    className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-all text-gray-500 dark:text-gray-400"
                     title="Back to content list"
                   >
-                    <ArrowLeft size={18} />
+                    <ArrowLeft size={16} />
                   </button>
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white shadow-md">
-                      {getTypeIcon(selectedItem.type)}
-                    </div>
-                    <h2 className="text-[15px] font-semibold text-gray-900 dark:text-white">{selectedItem.name}</h2>
-                  </div>
+                  <span className="text-[13px] text-gray-500 dark:text-gray-400">{getTypeIcon(selectedItem.type)}</span>
+                  <h2 className="text-[13px] font-medium text-gray-900 dark:text-white truncate">{selectedItem.name}</h2>
                 </div>
-                <button 
-                  onClick={() => handleDeleteContent(selectedItem.id)} 
-                  disabled={deleting === selectedItem.id} 
-                  className="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-all group"
-                >
-                  {deleting === selectedItem.id ? (
-                    <Loader2 size={16} className="animate-spin text-red-400" />
-                  ) : (
-                    <Trash2 size={16} className="text-red-400 group-hover:text-red-500" />
-                  )}
-                </button>
+                <div className="flex items-center gap-1">
+                  <Link
+                    href={`/dashboard/add?spaceId=${space.id}`}
+                    className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-all text-gray-500 dark:text-gray-400"
+                    title="Add Content"
+                  >
+                    <Plus size={16} />
+                  </Link>
+                  <button 
+                    onClick={() => handleDeleteContent(selectedItem.id)} 
+                    disabled={deleting === selectedItem.id} 
+                    className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-all text-gray-500 dark:text-gray-400"
+                  >
+                    {deleting === selectedItem.id ? (
+                      <Loader2 size={16} className="animate-spin" />
+                    ) : (
+                      <Trash2 size={16} />
+                    )}
+                  </button>
+                </div>
               </div>
 
               {/* PDF Viewer — custom react-pdf renderer with text selection */}
@@ -573,19 +563,35 @@ export default function SpaceDetailPage() {
               )}
             </>
           ) : (
-            // Content Grid View (like youlearn.ai)
-            <div className="flex-1 overflow-y-auto p-8">
-              <div className="max-w-7xl mx-auto">
+            // Content Grid View
+            <div className="flex-1 overflow-y-auto">
+              {/* Compact header */}
+              <div className="flex items-center justify-between px-4 py-2 border-b border-gray-200 dark:border-gray-800 shrink-0">
+                <div className="flex items-center gap-2">
+                  <Link href="/dashboard" className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-all text-gray-500 dark:text-gray-400">
+                    <ArrowLeft size={16} />
+                  </Link>
+                  <h1 className="text-[13px] font-medium text-gray-900 dark:text-white">{space.name}</h1>
+                </div>
+                <Link
+                  href={`/dashboard/add?spaceId=${space.id}`}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-black dark:bg-white text-white dark:text-black text-[12px] font-medium hover:opacity-90 transition-all"
+                >
+                  <Plus size={14} /> Add
+                </Link>
+              </div>
+
+              <div className="p-6 max-w-7xl mx-auto">
                 {/* Search bar */}
-                <div className="mb-8">
-                  <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm max-w-2xl">
-                    <Search size={18} className="text-gray-400" />
+                <div className="mb-6">
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-800 max-w-md">
+                    <Search size={15} className="text-gray-400" />
                     <input
                       type="text"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Search your content..."
-                      className="bg-transparent text-[15px] outline-none flex-1 placeholder:text-gray-400 text-gray-900 dark:text-white"
+                      placeholder="Search..."
+                      className="bg-transparent text-[13px] outline-none flex-1 placeholder:text-gray-400 text-gray-900 dark:text-white"
                     />
                   </div>
                 </div>
@@ -593,8 +599,8 @@ export default function SpaceDetailPage() {
                 {/* Content Grid */}
                 {filteredItems.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-20 text-center">
-                    <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center mx-auto mb-6 shadow-lg">
-                      <BookOpen size={36} className="text-white" />
+                    <div className="w-20 h-20 rounded-2xl bg-black dark:bg-white flex items-center justify-center mx-auto mb-6">
+                      <BookOpen size={36} className="text-white dark:text-black" />
                     </div>
                     <h3 className="text-[20px] font-semibold text-gray-900 dark:text-white mb-2">
                       {space.contentItems.length === 0 ? "No content yet" : "No results found"}
@@ -652,7 +658,7 @@ export default function SpaceDetailPage() {
                               />
                               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/0 to-black/0" />
                               <div className="absolute bottom-3 left-3 flex items-center gap-2">
-                                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white shadow-lg">
+                                <div className="w-10 h-10 rounded-lg bg-black dark:bg-white flex items-center justify-center text-white dark:text-black">
                                   <Youtube size={20} />
                                 </div>
                               </div>
@@ -660,7 +666,7 @@ export default function SpaceDetailPage() {
                           ) : (
                             /* Icon for non-video content */
                             <div className="p-6 pb-0">
-                              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white shadow-md group-hover:scale-110 transition-transform">
+                              <div className="w-12 h-12 rounded-xl bg-black dark:bg-white flex items-center justify-center text-white dark:text-black group-hover:scale-105 transition-transform">
                                 <IconComponent size={24} />
                               </div>
                             </div>
@@ -675,7 +681,7 @@ export default function SpaceDetailPage() {
                             </div>
 
                             {/* Title */}
-                            <h3 className="text-[16px] font-semibold text-gray-900 dark:text-white mb-2 line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                            <h3 className="text-[16px] font-semibold text-gray-900 dark:text-white mb-2 line-clamp-2 transition-colors">
                               {item.name}
                             </h3>
 
@@ -697,22 +703,37 @@ export default function SpaceDetailPage() {
         {/* ═══ RIGHT SIDEBAR - AI Panel (toggleable) ═══ */}
         {selectedItem && aiPanelOpen && (
           <>
-            {/* ═══ RESIZE HANDLE ═══ */}
-            <div
-              className={`resize-handle ${isDragging ? "dragging" : ""}`}
-              onMouseDown={handleResizeStart}
-            />
+            {/* Mobile overlay backdrop */}
+            {isMobile && (
+              <div
+                className="fixed inset-0 bg-black/40 z-40"
+                onClick={() => setAIPanelOpen(false)}
+              />
+            )}
+
+            {/* ═══ RESIZE HANDLE (desktop only) ═══ */}
+            {!isMobile && (
+              <div
+                className={`resize-handle ${isDragging ? "dragging" : ""}`}
+                onMouseDown={handleResizeStart}
+                onTouchStart={handleResizeStart}
+              />
+            )}
 
             {/* ═══ AI PANEL ═══ */}
             <div
-              className="bg-white dark:bg-gray-900 flex flex-col shrink-0 transition-[width] duration-100 border-l border-gray-200 dark:border-gray-800"
-              style={{ width: aiPanelWidth }}
+              className={
+                isMobile
+                  ? "fixed inset-y-0 right-0 z-50 w-[85vw] max-w-[420px] bg-white dark:bg-[#0a0a0a] flex flex-col border-l border-gray-200 dark:border-gray-800 shadow-2xl animate-in slide-in-from-right duration-200"
+                  : "bg-white dark:bg-[#0a0a0a] flex flex-col shrink-0 transition-[width] duration-100 border-l border-gray-200 dark:border-gray-800"
+              }
+              style={isMobile ? undefined : { width: aiPanelWidth }}
             >
               {/* Panel header */}
               <div className="border-b border-gray-200 dark:border-gray-800 px-5 py-4 flex items-center justify-between shrink-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm">
                 <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-md bg-gradient-to-br from-green-400 to-green-500 flex items-center justify-center">
-                    <Sparkles size={14} className="text-white" />
+                  <div className="w-6 h-6 rounded-md bg-black dark:bg-white flex items-center justify-center">
+                    <Sparkles size={14} className="text-white dark:text-black" />
                   </div>
                   <h3 className="text-[15px] font-semibold text-gray-900 dark:text-white">
                     Learn Tab
@@ -739,11 +760,11 @@ export default function SpaceDetailPage() {
                         disabled={generatingSummary}
                         className="flex flex-col items-center gap-2 p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all disabled:opacity-50"
                       >
-                        <div className="w-10 h-10 rounded-lg bg-orange-100 dark:bg-orange-900/20 flex items-center justify-center">
+                        <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
                           {generatingSummary ? (
-                            <Loader2 size={20} className="animate-spin text-orange-600" />
+                            <Loader2 size={20} className="animate-spin text-gray-600 dark:text-gray-300" />
                           ) : (
-                            <FileText size={20} className="text-orange-600" />
+                            <FileText size={20} className="text-gray-700 dark:text-gray-300" />
                           )}
                         </div>
                         <span className="text-[13px] font-medium text-gray-900 dark:text-white">Summary</span>
@@ -754,11 +775,11 @@ export default function SpaceDetailPage() {
                         disabled={generatingQuiz}
                         className="flex flex-col items-center gap-2 p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all disabled:opacity-50"
                       >
-                        <div className="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/20 flex items-center justify-center">
+                        <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
                           {generatingQuiz ? (
-                            <Loader2 size={20} className="animate-spin text-purple-600" />
+                            <Loader2 size={20} className="animate-spin text-gray-600 dark:text-gray-300" />
                           ) : (
-                            <Brain size={20} className="text-purple-600" />
+                            <Brain size={20} className="text-gray-700 dark:text-gray-300" />
                           )}
                         </div>
                         <span className="text-[13px] font-medium text-gray-900 dark:text-white">Quiz</span>
@@ -768,8 +789,8 @@ export default function SpaceDetailPage() {
                         disabled
                         className="flex flex-col items-center gap-2 p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 opacity-50 cursor-not-allowed"
                       >
-                        <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center">
-                          <GraduationCap size={20} className="text-blue-600" />
+                        <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                          <GraduationCap size={20} className="text-gray-700 dark:text-gray-300" />
                         </div>
                         <span className="text-[13px] font-medium text-gray-900 dark:text-white">Flashcards</span>
                       </button>
@@ -778,8 +799,8 @@ export default function SpaceDetailPage() {
                         disabled
                         className="flex flex-col items-center gap-2 p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 opacity-50 cursor-not-allowed"
                       >
-                        <div className="w-10 h-10 rounded-lg bg-red-100 dark:bg-red-900/20 flex items-center justify-center">
-                          <Headphones size={20} className="text-red-600" />
+                        <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                          <Headphones size={20} className="text-gray-700 dark:text-gray-300" />
                         </div>
                         <span className="text-[13px] font-medium text-gray-900 dark:text-white">Podcast</span>
                       </button>
@@ -788,8 +809,8 @@ export default function SpaceDetailPage() {
                         disabled
                         className="flex flex-col items-center gap-2 p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 opacity-50 cursor-not-allowed"
                       >
-                        <div className="w-10 h-10 rounded-lg bg-yellow-100 dark:bg-yellow-900/20 flex items-center justify-center">
-                          <FileText size={20} className="text-yellow-600" />
+                        <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                          <FileText size={20} className="text-gray-700 dark:text-gray-300" />
                         </div>
                         <span className="text-[13px] font-medium text-gray-900 dark:text-white">Notes</span>
                       </button>
@@ -839,7 +860,7 @@ export default function SpaceDetailPage() {
                         messages.map((msg) => (
                           <div key={msg.id} className={`flex gap-3 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
                             {msg.role === "ai" && (
-                              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white shrink-0">
+                              <div className="w-8 h-8 rounded-lg bg-black dark:bg-white flex items-center justify-center text-white dark:text-black shrink-0">
                                 <Sparkles size={14} />
                               </div>
                             )}
@@ -866,13 +887,13 @@ export default function SpaceDetailPage() {
                     {/* Chat input */}
                     <div className="sticky bottom-0 bg-white dark:bg-gray-900 pt-3 border-t border-gray-200 dark:border-gray-800">
                       {quotedText && (
-                        <div className="mb-2 p-2 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 flex items-start justify-between gap-2">
+                          <div className="mb-2 p-2 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-start justify-between gap-2">
                           <div className="flex-1 min-w-0">
-                            <p className="text-[11px] text-blue-600 dark:text-blue-400 font-medium mb-1">Quoted text:</p>
+                            <p className="text-[11px] text-gray-600 dark:text-gray-400 font-medium mb-1">Quoted text:</p>
                             <p className="text-[12px] text-gray-700 dark:text-gray-300 line-clamp-2">{quotedText}</p>
                           </div>
-                          <button onClick={() => setQuotedText(null)} className="p-1 hover:bg-blue-100 dark:hover:bg-blue-900/40 rounded transition-colors">
-                            <X size={14} className="text-blue-600 dark:text-blue-400" />
+                          <button onClick={() => setQuotedText(null)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors">
+                            <X size={14} className="text-gray-600 dark:text-gray-400" />
                           </button>
                         </div>
                       )}
@@ -884,15 +905,15 @@ export default function SpaceDetailPage() {
                           onKeyDown={(e) => {
                             if (e.key === "Enter" && !e.shiftKey) {
                               e.preventDefault();
-                              handleSendChat();
+                              handleSendMessage();
                             }
                           }}
                           placeholder="Ask a question..."
                           disabled={sendingChat}
-                          className="flex-1 px-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 text-[14px] outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 transition-all disabled:opacity-50 text-gray-900 dark:text-white placeholder:text-gray-400"
+                          className="flex-1 px-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 text-[14px] outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500 transition-all disabled:opacity-50 text-gray-900 dark:text-white placeholder:text-gray-400"
                         />
                         <button
-                          onClick={handleSendChat}
+                          onClick={handleSendMessage}
                           disabled={!chatInput.trim() || sendingChat}
                           className="px-4 py-2.5 rounded-lg bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                         >
@@ -911,13 +932,12 @@ export default function SpaceDetailPage() {
         {selectedItem && !aiPanelOpen && (
           <button
             onClick={() => setAIPanelOpen(true)}
-            className="fixed right-6 bottom-6 w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 text-white shadow-lg hover:shadow-xl transition-all flex items-center justify-center z-50 hover:scale-110"
+            className="fixed right-6 bottom-6 w-14 h-14 rounded-full bg-black dark:bg-white text-white dark:text-black shadow-lg hover:shadow-xl transition-all flex items-center justify-center z-50 hover:scale-110"
             title="Open AI Assistant"
           >
             <Sparkles size={24} />
           </button>
         )}
-      </div>
     </div>
   );
 }

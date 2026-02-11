@@ -9,7 +9,9 @@ import {
   BookOpen, 
   Settings,
   ArrowRight,
-  GraduationCap
+  GraduationCap,
+  Plus,
+  X
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ContentItem } from "../types";
@@ -51,6 +53,7 @@ export function CommandCenter({
             exit={{ opacity: 0 }}
             className="fixed inset-0 bg-black/40 backdrop-blur-sm"
             onClick={() => setIsOpen(false)}
+            onTouchEnd={(e) => { e.preventDefault(); setIsOpen(false); }}
           />
           <div className="fixed inset-0 flex items-center justify-center p-4">
             <motion.div
@@ -67,6 +70,13 @@ export function CommandCenter({
                     placeholder="Search sources, actions, or ask AI..."
                     className="flex h-14 w-full rounded-md bg-transparent py-3 text-[15px] outline-none placeholder:text-zinc-500 disabled:cursor-not-allowed disabled:opacity-50"
                   />
+                  <button
+                    onClick={() => setIsOpen(false)}
+                    className="ml-2 p-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 active:bg-zinc-200 dark:active:bg-zinc-700 transition-colors touch-manipulation"
+                    aria-label="Close search"
+                  >
+                    <X className="h-4 w-4 text-zinc-400" />
+                  </button>
                 </div>
                 <Command.List className="max-h-[400px] overflow-y-auto p-2 scrollbar-none">
                   <Command.Empty className="py-6 text-center text-sm text-zinc-500">
@@ -154,13 +164,16 @@ export function CommandCenter({
 
                 <div className="border-t border-zinc-100 dark:border-zinc-800 p-3 flex items-center justify-between bg-zinc-50/50 dark:bg-zinc-900/50">
                   <div className="flex items-center gap-4 text-[11px] text-zinc-400">
-                    <div className="flex items-center gap-1">
+                    <div className="hidden sm:flex items-center gap-1">
                       <kbd className="px-1.5 py-0.5 rounded border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 font-sans">↵</kbd>
                       <span>to select</span>
                     </div>
-                    <div className="flex items-center gap-1">
+                    <div className="hidden sm:flex items-center gap-1">
                       <kbd className="px-1.5 py-0.5 rounded border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 font-sans">esc</kbd>
                       <span>to close</span>
+                    </div>
+                    <div className="flex sm:hidden items-center gap-1">
+                      <span>Tap outside or ✕ to close</span>
                     </div>
                   </div>
                   <div className="flex items-center gap-1 text-[11px] font-medium text-zinc-500">

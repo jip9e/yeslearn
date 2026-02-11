@@ -21,6 +21,8 @@ export interface ModelInfo {
     name: string;
     provider: string;
     capabilities: string[];
+    vendor?: string;
+    category?: string;
 }
 
 // ── Copilot Chat Completions ─────────────────────────────────
@@ -83,33 +85,68 @@ async function fetchCopilotModels(): Promise<ModelInfo[]> {
             },
         });
 
-        if (!res.ok) return getDefaultCopilotModels();
-
-        const data = await res.json();
-        if (Array.isArray(data)) {
-            return data.map((m: { id: string; name?: string; capabilities?: string }) => ({
-                id: m.id,
-                name: m.name || m.id,
-                provider: "github-copilot",
-                capabilities: ["chat"],
-            }));
+        if (!res.ok) {
+            console.warn(`[Models] Copilot API returned ${res.status}, using fallback list`);
+            return getDefaultCopilotModels();
         }
 
+        const json = await res.json();
+        // API returns { data: [...], object: "list" }
+        const models = Array.isArray(json) ? json : (json.data ?? []);
+
+        if (Array.isArray(models) && models.length > 0) {
+            const chatModels = models
+                .filter((m: any) => {
+                    const isChat = m.capabilities?.type === "chat";
+                    const isPickerVisible = m.model_picker_enabled === true;
+                    // Only include models usable via /chat/completions
+                    const supportsChat = !m.supported_endpoints || m.supported_endpoints.includes("/chat/completions");
+                    return isChat && isPickerVisible && supportsChat;
+                })
+                .map((m: any) => ({
+                    id: m.id,
+                    name: m.name || m.id,
+                    provider: "github-copilot",
+                    capabilities: ["chat"],
+                    vendor: m.vendor || "",
+                    category: m.model_picker_category || "",
+                }));
+
+            console.log(`[Models] Fetched ${chatModels.length} chat models from Copilot API (${models.length} total)`);
+            return chatModels.length > 0 ? chatModels : getDefaultCopilotModels();
+        }
+
+        console.warn("[Models] Unexpected Copilot API response format, using fallback list");
         return getDefaultCopilotModels();
-    } catch {
+    } catch (err) {
+        console.warn("[Models] Copilot models fetch failed, using fallback list:", err instanceof Error ? err.message : "unknown");
         return getDefaultCopilotModels();
     }
 }
 
 function getDefaultCopilotModels(): ModelInfo[] {
     return [
-        { id: "gpt-4o", name: "GPT-4o", provider: "github-copilot", capabilities: ["chat"] },
-        { id: "gpt-4.1", name: "GPT-4.1", provider: "github-copilot", capabilities: ["chat"] },
-        { id: "gpt-4o-mini", name: "GPT-4o Mini", provider: "github-copilot", capabilities: ["chat"] },
-        { id: "claude-sonnet-4", name: "Claude Sonnet 4", provider: "github-copilot", capabilities: ["chat"] },
-        { id: "claude-3.5-sonnet", name: "Claude 3.5 Sonnet", provider: "github-copilot", capabilities: ["chat"] },
-        { id: "o4-mini", name: "o4-mini", provider: "github-copilot", capabilities: ["chat"] },
-        { id: "o3-mini", name: "o3-mini", provider: "github-copilot", capabilities: ["chat"] },
+        // OpenAI — powerful
+        { id: "gpt-5.2", name: "GPT-5.2", provider: "github-copilot", capabilities: ["chat"], vendor: "OpenAI", category: "versatile" },
+        { id: "gpt-5.1", name: "GPT-5.1", provider: "github-copilot", capabilities: ["chat"], vendor: "OpenAI", category: "versatile" },
+        { id: "gpt-5", name: "GPT-5", provider: "github-copilot", capabilities: ["chat"], vendor: "Azure OpenAI", category: "versatile" },
+        { id: "gpt-5-mini", name: "GPT-5 mini", provider: "github-copilot", capabilities: ["chat"], vendor: "Azure OpenAI", category: "lightweight" },
+        { id: "gpt-4.1", name: "GPT-4.1", provider: "github-copilot", capabilities: ["chat"], vendor: "Azure OpenAI", category: "versatile" },
+        { id: "gpt-4o", name: "GPT-4o", provider: "github-copilot", capabilities: ["chat"], vendor: "Azure OpenAI", category: "versatile" },
+        // Anthropic
+        { id: "claude-opus-4.6", name: "Claude Opus 4.6", provider: "github-copilot", capabilities: ["chat"], vendor: "Anthropic", category: "powerful" },
+        { id: "claude-opus-4.5", name: "Claude Opus 4.5", provider: "github-copilot", capabilities: ["chat"], vendor: "Anthropic", category: "powerful" },
+        { id: "claude-sonnet-4.5", name: "Claude Sonnet 4.5", provider: "github-copilot", capabilities: ["chat"], vendor: "Anthropic", category: "versatile" },
+        { id: "claude-sonnet-4", name: "Claude Sonnet 4", provider: "github-copilot", capabilities: ["chat"], vendor: "Anthropic", category: "versatile" },
+        { id: "claude-haiku-4.5", name: "Claude Haiku 4.5", provider: "github-copilot", capabilities: ["chat"], vendor: "Anthropic", category: "versatile" },
+        // Google
+        { id: "gemini-3-pro-preview", name: "Gemini 3 Pro (Preview)", provider: "github-copilot", capabilities: ["chat"], vendor: "Google", category: "powerful" },
+        { id: "gemini-3-flash-preview", name: "Gemini 3 Flash (Preview)", provider: "github-copilot", capabilities: ["chat"], vendor: "Google", category: "lightweight" },
+        { id: "gemini-2.5-pro", name: "Gemini 2.5 Pro", provider: "github-copilot", capabilities: ["chat"], vendor: "Google", category: "powerful" },
+        // xAI
+        { id: "grok-code-fast-1", name: "Grok Code Fast 1", provider: "github-copilot", capabilities: ["chat"], vendor: "xAI", category: "lightweight" },
+        // Microsoft
+        { id: "oswe-vscode-prime", name: "Raptor mini (Preview)", provider: "github-copilot", capabilities: ["chat"], vendor: "Azure OpenAI", category: "versatile" },
     ];
 }
 
@@ -210,8 +247,10 @@ export async function chatCompletion(
     messages: ChatMessage[],
     options?: { maxTokens?: number }
 ): Promise<ChatCompletionResult> {
-    // Auto-detect provider from model name or settings
-    if (isGeminiModel(model)) {
+    // Route gemini-* models to the direct Gemini API only if the
+    // Google Gemini CLI provider is connected. Otherwise, they'll
+    // go through Copilot which also serves Gemini models.
+    if (isGeminiModel(model) && !!getDefaultProfile("google-gemini-cli")) {
         return geminiChatCompletion(model, messages, options);
     }
     // Default to Copilot

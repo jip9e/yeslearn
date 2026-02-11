@@ -502,22 +502,52 @@ export default function SpaceDetailPage() {
                 </div>
               )}
 
-              {/* YouTube Embed — full width */}
+              {/* YouTube Embed with enhanced transcript view */}
               {selectedItem.type === "youtube" && selectedItem.sourceUrl && (
-                <div className="flex-1 flex flex-col">
-                  <div className="flex-1 min-h-0">
+                <div className="flex-1 flex flex-col overflow-hidden">
+                  {/* Video player */}
+                  <div className="aspect-video w-full bg-black shrink-0">
                     {getYoutubeEmbedUrl(selectedItem.sourceUrl) ? (
-                      <iframe src={getYoutubeEmbedUrl(selectedItem.sourceUrl)!} className="w-full h-full" allowFullScreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" />
+                      <iframe 
+                        src={getYoutubeEmbedUrl(selectedItem.sourceUrl)!} 
+                        className="w-full h-full" 
+                        allowFullScreen 
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                      />
                     ) : (
-                      <div className="bg-black h-full flex items-center justify-center"><p className="text-white/60 text-sm">Could not load video</p></div>
+                      <div className="w-full h-full flex items-center justify-center">
+                        <p className="text-white/60 text-sm">Could not load video</p>
+                      </div>
                     )}
                   </div>
-                  {/* Transcript below video */}
+                  
+                  {/* Transcript/Chapters section (like youlearn.ai) */}
                   {selectedItem.extractedText && (
-                    <div className="max-h-[40%] overflow-y-auto p-4 border-t border-[#eee] dark:border-[#1a1a1a] bg-white dark:bg-[#0a0a0a]">
-                      <h3 className="text-[12px] font-semibold text-[#999] mb-2 uppercase tracking-wider">Transcript</h3>
-                      <div className="text-[13px] text-[#444] dark:text-[#ccc] leading-[1.7] whitespace-pre-line select-text cursor-text">
-                        {selectedItem.extractedText}
+                    <div className="flex-1 overflow-y-auto bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800">
+                      <div className="p-6">
+                        <div className="flex items-center gap-3 mb-4">
+                          <button className="px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white text-[14px] font-medium">
+                            Chapters
+                          </button>
+                          <button className="px-4 py-2 rounded-lg text-gray-600 dark:text-gray-400 text-[14px] font-medium hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                            Transcripts
+                          </button>
+                        </div>
+                        
+                        <div className="space-y-4">
+                          {/* Sample chapter format - in real app, parse from transcript */}
+                          <div className="group cursor-pointer">
+                            <div className="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                              <span className="text-[13px] font-mono text-gray-500 dark:text-gray-400 shrink-0">00:00</span>
+                              <div className="flex-1">
+                                <h4 className="text-[14px] font-medium text-gray-900 dark:text-white mb-1">Introduction</h4>
+                                <p className="text-[13px] text-gray-600 dark:text-gray-400 leading-relaxed line-clamp-2">
+                                  {selectedItem.extractedText.slice(0, 150)}...
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   )}
@@ -587,21 +617,58 @@ export default function SpaceDetailPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {filteredItems.map((item) => {
                       const IconComponent = TYPE_ICONS[item.type] || FileText;
+                      // Extract YouTube thumbnail if it's a video
+                      const getYoutubeThumbnail = (url: string | undefined) => {
+                        if (!url) return null;
+                        try {
+                          const urlObj = new URL(url);
+                          let videoId = "";
+                          if (urlObj.hostname.includes("youtube.com")) {
+                            videoId = urlObj.searchParams.get("v") || "";
+                          } else if (urlObj.hostname.includes("youtu.be")) {
+                            videoId = urlObj.pathname.slice(1);
+                          }
+                          return videoId ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` : null;
+                        } catch {
+                          return null;
+                        }
+                      };
+                      
+                      const thumbnail = item.type === "youtube" ? getYoutubeThumbnail(item.sourceUrl) : null;
+
                       return (
                         <button
                           key={item.id}
                           onClick={() => setSelectedContent(item.id)}
-                          className="group text-left bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6 hover:border-gray-300 dark:hover:border-gray-700 hover:shadow-xl transition-all duration-300 relative overflow-hidden"
+                          className="group text-left bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700 hover:shadow-xl transition-all duration-300 relative overflow-hidden"
                         >
-                          {/* Hover gradient effect */}
-                          <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                          
-                          <div className="relative">
-                            {/* Icon and type */}
-                            <div className="flex items-center justify-between mb-4">
+                          {/* Thumbnail for videos */}
+                          {thumbnail ? (
+                            <div className="relative aspect-video w-full overflow-hidden rounded-t-2xl bg-gray-100 dark:bg-gray-800">
+                              <img 
+                                src={thumbnail} 
+                                alt={item.name}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              />
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/0 to-black/0" />
+                              <div className="absolute bottom-3 left-3 flex items-center gap-2">
+                                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white shadow-lg">
+                                  <Youtube size={20} />
+                                </div>
+                              </div>
+                            </div>
+                          ) : (
+                            /* Icon for non-video content */
+                            <div className="p-6 pb-0">
                               <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white shadow-md group-hover:scale-110 transition-transform">
                                 <IconComponent size={24} />
                               </div>
+                            </div>
+                          )}
+                          
+                          <div className="p-6">
+                            {/* Type badge */}
+                            <div className="flex items-center justify-between mb-3">
                               <span className="text-[11px] px-3 py-1.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 font-medium uppercase tracking-wide">
                                 {item.type}
                               </span>
@@ -642,11 +709,15 @@ export default function SpaceDetailPage() {
               style={{ width: aiPanelWidth }}
             >
               {/* Panel header */}
-              <div className="border-b border-gray-200 dark:border-gray-800 px-4 py-3 flex items-center justify-between shrink-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm">
-                <h3 className="text-[15px] font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                  <Sparkles size={16} className="text-blue-500" />
-                  AI Assistant
-                </h3>
+              <div className="border-b border-gray-200 dark:border-gray-800 px-5 py-4 flex items-center justify-between shrink-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-md bg-gradient-to-br from-green-400 to-green-500 flex items-center justify-center">
+                    <Sparkles size={14} className="text-white" />
+                  </div>
+                  <h3 className="text-[15px] font-semibold text-gray-900 dark:text-white">
+                    Learn Tab
+                  </h3>
+                </div>
                 <button 
                   onClick={() => setAIPanelOpen(false)} 
                   className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-all text-gray-600 dark:text-gray-400"
@@ -656,15 +727,72 @@ export default function SpaceDetailPage() {
                 </button>
               </div>
 
-              {/* Panel content - Combined Learn & Chat */}
+              {/* Panel content - Learn Tab style */}
               <div className="flex-1 overflow-y-auto">
                 <div className="p-5 space-y-6">
-                  {/* Quick Actions */}
+                  {/* Generate section */}
                   <div>
-                    <h4 className="text-[13px] font-semibold text-gray-700 dark:text-gray-300 mb-3">Quick Actions</h4>
+                    <h4 className="text-[14px] font-semibold text-gray-900 dark:text-white mb-3">Generate</h4>
                     <div className="grid grid-cols-2 gap-3">
-                      <ToolCard icon={<Brain size={16} />} label="Quiz" color="#8b5cf6" loading={generatingQuiz} onClick={handleGenerateQuiz} />
-                      <ToolCard icon={<FileText size={16} />} label="Summary" color="#f59e0b" loading={generatingSummary} onClick={handleGenerateSummary} />
+                      <button
+                        onClick={handleGenerateSummary}
+                        disabled={generatingSummary}
+                        className="flex flex-col items-center gap-2 p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all disabled:opacity-50"
+                      >
+                        <div className="w-10 h-10 rounded-lg bg-orange-100 dark:bg-orange-900/20 flex items-center justify-center">
+                          {generatingSummary ? (
+                            <Loader2 size={20} className="animate-spin text-orange-600" />
+                          ) : (
+                            <FileText size={20} className="text-orange-600" />
+                          )}
+                        </div>
+                        <span className="text-[13px] font-medium text-gray-900 dark:text-white">Summary</span>
+                      </button>
+
+                      <button
+                        onClick={handleGenerateQuiz}
+                        disabled={generatingQuiz}
+                        className="flex flex-col items-center gap-2 p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all disabled:opacity-50"
+                      >
+                        <div className="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/20 flex items-center justify-center">
+                          {generatingQuiz ? (
+                            <Loader2 size={20} className="animate-spin text-purple-600" />
+                          ) : (
+                            <Brain size={20} className="text-purple-600" />
+                          )}
+                        </div>
+                        <span className="text-[13px] font-medium text-gray-900 dark:text-white">Quiz</span>
+                      </button>
+
+                      <button
+                        disabled
+                        className="flex flex-col items-center gap-2 p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 opacity-50 cursor-not-allowed"
+                      >
+                        <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center">
+                          <GraduationCap size={20} className="text-blue-600" />
+                        </div>
+                        <span className="text-[13px] font-medium text-gray-900 dark:text-white">Flashcards</span>
+                      </button>
+
+                      <button
+                        disabled
+                        className="flex flex-col items-center gap-2 p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 opacity-50 cursor-not-allowed"
+                      >
+                        <div className="w-10 h-10 rounded-lg bg-red-100 dark:bg-red-900/20 flex items-center justify-center">
+                          <Headphones size={20} className="text-red-600" />
+                        </div>
+                        <span className="text-[13px] font-medium text-gray-900 dark:text-white">Podcast</span>
+                      </button>
+
+                      <button
+                        disabled
+                        className="flex flex-col items-center gap-2 p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 opacity-50 cursor-not-allowed"
+                      >
+                        <div className="w-10 h-10 rounded-lg bg-yellow-100 dark:bg-yellow-900/20 flex items-center justify-center">
+                          <FileText size={20} className="text-yellow-600" />
+                        </div>
+                        <span className="text-[13px] font-medium text-gray-900 dark:text-white">Notes</span>
+                      </button>
                     </div>
                   </div>
 

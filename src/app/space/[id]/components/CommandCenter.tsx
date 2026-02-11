@@ -9,7 +9,7 @@ import {
   BookOpen, 
   Settings,
   ArrowRight,
-  Sparkles
+  GraduationCap
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ContentItem } from "../types";
@@ -164,7 +164,7 @@ export function CommandCenter({
                     </div>
                   </div>
                   <div className="flex items-center gap-1 text-[11px] font-medium text-zinc-500">
-                    <Sparkles size={12} className="text-zinc-400" />
+                    <GraduationCap size={12} className="text-zinc-400" />
                     Study OS
                   </div>
                 </div>

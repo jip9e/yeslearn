@@ -2,7 +2,7 @@ import React from "react";
 import Link from "next/link";
 import Navigation from "@/components/sections/navigation";
 import Footer from "@/components/sections/footer";
-import { Check, Sparkles } from "lucide-react";
+import { Check, Star } from "lucide-react";
 
 const PLANS = [
   {
@@ -86,7 +86,7 @@ export default function PricingPage() {
                 {plan.popular && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                     <span className="flex items-center gap-1 px-3 py-1 rounded-full bg-white text-black text-[11px] font-semibold shadow-sm">
-                      <Sparkles size={12} /> Most Popular
+                      <Star size={12} /> Most Popular
                     </span>
                   </div>
                 )}

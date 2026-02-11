@@ -2,7 +2,7 @@
 import React from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Sparkles, FileText, Copy, Send, Loader2, X, Plus, MessageSquare } from "lucide-react";
+import { FileText, Copy, Send, Loader2, X, Plus, MessageSquare } from "lucide-react";
 import { ChatMessage, ChatSession } from "../types";
 
 interface ChatSectionProps {
@@ -72,7 +72,7 @@ export function ChatSection({
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full gap-6 py-16">
             <div className="w-16 h-16 rounded-2xl bg-secondary flex items-center justify-center border border-border">
-              <Sparkles size={28} className="text-foreground" />
+              <MessageSquare size={28} className="text-foreground" />
             </div>
             <div className="text-center">
               <p className="text-[16px] font-semibold text-foreground mb-2">How can I help you today?</p>
@@ -125,12 +125,9 @@ export function ChatSection({
                   </div>
                 ) : (
                   <div className="flex gap-3">
-                    <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center shrink-0 mt-0.5 border border-border">
-                      <Sparkles size={14} className="text-foreground" />
-                    </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-[11px] font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">
-                        Assistant
+                        YesLearn
                       </p>
                       <div className="px-4 py-3 rounded-2xl rounded-bl-md bg-secondary text-foreground shadow-sm">
                         <div className="prose-ai text-[13px] leading-[1.8]">
@@ -199,9 +196,6 @@ export function ChatSection({
 
         {sendingChat && (
           <div className="flex gap-3 animate-in fade-in slide-in-from-bottom-2 duration-200">
-            <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center shrink-0 border border-border">
-              <Sparkles size={14} className="text-foreground" />
-            </div>
             <div className="px-4 py-3 rounded-2xl rounded-bl-md bg-secondary border border-border/50 shadow-sm">
               <div className="flex items-center gap-1.5">
                 <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50 animate-bounce" style={{ animationDelay: "0ms" }} />

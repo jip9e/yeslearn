@@ -1,6 +1,6 @@
 "use client";
 import React from "react";
-import { Loader2, Target, Sparkles, Compass, MessageSquare } from "lucide-react";
+import { Loader2, Target, BookOpen, Compass, MessageSquare } from "lucide-react";
 import { SpaceData, ChatSession } from "../types";
 
 interface StudyStackProps {
@@ -81,7 +81,7 @@ export function StudyStack({
                 }`}
               >
                 <span className="flex items-center gap-3">
-                  {task.label === "Summary" ? <Sparkles size={14} /> : <Target size={14} />}
+                  {task.label === "Summary" ? <BookOpen size={14} /> : <Target size={14} />}
                   {task.label}
                 </span>
                 {task.loading ? <Loader2 size={14} className="animate-spin" /> : task.ready ? "Ready" : "Run"}

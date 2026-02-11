@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
 
         const contextText = spaceContent
             .filter(c => c.text)
-            .map(c => `--- ${c.name} ---\n${c.text!.slice(0, 8000)}`)
+            .map(c => `--- ${c.name} ---\n${c.text!.slice(0, 15000)}`)
             .join("\n\n");
 
         // Get recent chat history (last 20 messages)
@@ -88,26 +88,34 @@ export async function POST(req: NextRequest) {
             .map((c, i) => ({ index: i + 1, name: c.name }));
 
         const sourceRefInstructions = sourceMap.length > 0
-            ? `\n\n## Source Citation Rules
-When your answer draws from the learning materials, cite sources inline using this exact format: [Source N] where N is the source number.
+            ? `\n\n## CRITICAL: Source Citations (MANDATORY)
+You MUST cite sources for EVERY factual claim. Use this exact format inline: [Source 1], [Source 2], etc.
+Do NOT skip citations. Every paragraph that references the material MUST have at least one [Source N] tag.
+
 Available sources:
-${sourceMap.map(s => `- [Source ${s.index}]: ${s.name}`).join("\n")}
+${sourceMap.map(s => `[Source ${s.index}] = "${s.name}"`).join("\n")}
 
-Example: "Photosynthesis converts light energy into chemical energy [Source 1]."
+Example output: "The mitochondria is the powerhouse of the cell [Source 1]. This process involves ATP synthesis [Source 1] and electron transport chains [Source 2]."
 
-## Follow-up Questions
-At the VERY END of your response, add a section like this (always exactly 3 questions):
+## CRITICAL: Follow-up Questions (MANDATORY)
+You MUST end EVERY response with EXACTLY 3 follow-up questions that are specific to what was just discussed. They should help the student go deeper into the topic.
+Format them as the VERY LAST thing in your response, like this:
+
 ---follow-up---
-What are the key differences between X and Y?
-Can you explain how Z works in more detail?
-What are real-world applications of this concept?
----end-follow-up---`
-            : `\n\n## Follow-up Questions
-At the VERY END of your response, add a section like this (always exactly 3 questions):
+First specific follow-up question here?
+Second specific follow-up question here?
+Third specific follow-up question here?
+---end-follow-up---
+
+The questions must be specific to the content discussed, NOT generic. They should reference actual concepts, terms, or topics from the conversation.`
+            : `\n\n## CRITICAL: Follow-up Questions (MANDATORY)
+You MUST end EVERY response with EXACTLY 3 follow-up questions.
+Format them as the VERY LAST thing in your response, like this:
+
 ---follow-up---
-What topics should I start learning about?
-How can I make the most of this study tool?
-What types of content work best for learning?
+First follow-up question here?
+Second follow-up question here?
+Third follow-up question here?
 ---end-follow-up---`;
 
         const systemPrompt = contextText
@@ -151,14 +159,32 @@ ${sourceRefInstructions}`;
         // Parse follow-up questions and clean content
         let aiContent = result.content;
         let followUpQuestions: string[] = [];
-        const followUpMatch = aiContent.match(/---follow-up---([\s\S]*?)---end-follow-up---/);
-        if (followUpMatch) {
-            followUpQuestions = followUpMatch[1]
-                .split("\n")
-                .map(q => q.trim())
-                .filter(q => q.length > 0);
-            aiContent = aiContent.replace(/---follow-up---[\s\S]*?---end-follow-up---/, "").trim();
+
+        // Try multiple patterns - AI models often vary the exact marker format
+        const followUpPatterns = [
+            /---\s*follow[- ]?up\s*---([\s\S]*?)---\s*end[- ]?follow[- ]?up\s*---/i,
+            /\*\*?follow[- ]?up\*\*?[:\s]*([\s\S]*?)(?:---\s*end|$)/i,
+            /#{1,3}\s*(?:suggested\s+)?follow[- ]?up[s]?[:\s]*\n([\s\S]*?)$/i,
+            /(?:follow[- ]?up|suggested)\s*questions?[:\s]*\n([\s\S]*?)$/i,
+        ];
+
+        for (const pattern of followUpPatterns) {
+            const followUpMatch = aiContent.match(pattern);
+            if (followUpMatch) {
+                const rawQuestions = followUpMatch[1]
+                    .split("\n")
+                    .map(q => q.replace(/^\s*[-*\d.]+\s*/, "").trim())
+                    .filter(q => q.length > 10 && q.endsWith("?"));
+                if (rawQuestions.length >= 2) {
+                    followUpQuestions = rawQuestions.slice(0, 4);
+                    aiContent = aiContent.replace(followUpMatch[0], "").trim();
+                    break;
+                }
+            }
         }
+
+        // Final cleanup: remove any remaining follow-up markers
+        aiContent = aiContent.replace(/---\s*follow[- ]?up\s*---/gi, "").replace(/---\s*end[- ]?follow[- ]?up\s*---/gi, "").trim();
 
         // Extract source references used in the response
         const sourceRefs: { index: number; name: string }[] = [];

@@ -67,35 +67,14 @@ export async function POST(req: NextRequest) {
                 filePath = path.join(uploadsDir, fileName);
                 fs.writeFileSync(filePath, buffer);
 
-                // Extract text using dynamic import (pdf-parse v2 is ESM)
-                const pdfParseModule = await import("pdf-parse");
-                const pdfParse = pdfParseModule.default ?? pdfParseModule;
-                const pdfData = await pdfParse(buffer, {
-                    // Preserve all text: don't skip any pages
-                    max: 0,
-                    // Custom page renderer to capture every character with structure
-                    pagerender: async function (pageData: { getTextContent: (opts: { normalizeWhitespace: boolean; disableCombineTextItems: boolean }) => Promise<{ items: Array<{ str: string; transform: number[]; hasEOL?: boolean }> }> }) {
-                        const textContent = await pageData.getTextContent({
-                            normalizeWhitespace: false,
-                            disableCombineTextItems: false,
-                        });
-                        // Build text preserving line breaks from the PDF layout
-                        let lastY: number | null = null;
-                        let text = "";
-                        for (const item of textContent.items) {
-                            const y = item.transform[5];
-                            if (lastY !== null && Math.abs(y - lastY) > 2) {
-                                text += "\n";
-                            }
-                            text += item.str;
-                            lastY = y;
-                        }
-                        return text;
-                    },
-                });
+                // Extract text using pdf-parse v2 (class-based API)
+                const { PDFParse } = await import("pdf-parse");
+                const parser = new PDFParse({ data: buffer });
+                const textResult = await parser.getText();
+                await parser.destroy();
 
                 // Clean up: collapse 3+ newlines into 2, trim each line
-                extractedText = pdfData.text
+                extractedText = textResult.text
                     .replace(/\n{3,}/g, "\n\n")
                     .split("\n")
                     .map((l: string) => l.trimEnd())
@@ -103,7 +82,7 @@ export async function POST(req: NextRequest) {
                     .trim();
 
                 metadata = {
-                    pages: pdfData.numpages,
+                    pages: textResult.total,
                     fileName: file.name,
                     fileSize: file.size,
                     textLength: extractedText.length,

@@ -216,6 +216,10 @@
     color: #333;
   }
 
+  .prose-ai-dark {
+    color: #ccc;
+  }
+
   .prose-ai h1,
   .prose-ai h2,
   .prose-ai h3,
@@ -225,6 +229,13 @@
     margin-top: 1.25em;
     margin-bottom: 0.5em;
     color: #111;
+  }
+
+  .prose-ai-dark h1,
+  .prose-ai-dark h2,
+  .prose-ai-dark h3,
+  .prose-ai-dark h4 {
+    color: #e5e5e5;
   }
 
   .prose-ai h1 {
@@ -252,6 +263,10 @@
     color: #111;
   }
 
+  .prose-ai-dark strong {
+    color: #e5e5e5;
+  }
+
   .prose-ai ul,
   .prose-ai ol {
     margin: 0.5em 0;
@@ -272,6 +287,10 @@
 
   .prose-ai li::marker {
     color: #999;
+  }
+
+  .prose-ai-dark li::marker {
+    color: #8b5cf6;
   }
 
   .prose-ai code {
@@ -305,9 +324,18 @@
     font-style: italic;
   }
 
+  .prose-ai-dark blockquote {
+    border-left-color: #8b5cf6;
+    color: #999;
+  }
+
   .prose-ai a {
     color: #2563eb;
     text-decoration: underline;
+  }
+
+  .prose-ai-dark a {
+    color: #a78bfa;
   }
 
   .prose-ai table {
@@ -329,10 +357,30 @@
     font-weight: 600;
   }
 
+  .prose-ai-dark th,
+  .prose-ai-dark td {
+    border-color: #1e1e3a;
+    color: #ccc;
+  }
+
+  .prose-ai-dark th {
+    background: #1a1a2e;
+    color: #e5e5e5;
+  }
+
   .prose-ai hr {
     border: none;
     border-top: 1px solid #e5e5e5;
     margin: 1.5em 0;
+  }
+
+  .prose-ai-dark hr {
+    border-top-color: #1e1e3a;
+  }
+
+  .prose-ai-dark code {
+    background: rgba(139, 92, 246, 0.15);
+    color: #d4bfff;
   }
 
   /* ── Typing dots animation ────────────────────────────── */

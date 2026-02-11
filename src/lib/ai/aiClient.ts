@@ -30,7 +30,8 @@ const COPILOT_MODELS_URL = "https://api.individual.githubcopilot.com/models";
 
 async function copilotChatCompletion(
     model: string,
-    messages: ChatMessage[]
+    messages: ChatMessage[],
+    options?: { maxTokens?: number }
 ): Promise<ChatCompletionResult> {
     const auth = await resolveCopilotBearer();
 
@@ -49,7 +50,7 @@ async function copilotChatCompletion(
             messages,
             temperature: 0.4,
             top_p: 1,
-            max_tokens: 4096,
+            max_tokens: options?.maxTokens ?? 4096,
             stream: false,
         }),
     });
@@ -118,7 +119,8 @@ const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta";
 
 async function geminiChatCompletion(
     model: string,
-    messages: ChatMessage[]
+    messages: ChatMessage[],
+    options?: { maxTokens?: number }
 ): Promise<ChatCompletionResult> {
     const auth = await resolveGeminiAuth();
 
@@ -135,7 +137,7 @@ async function geminiChatCompletion(
     if (systemInstruction) {
         body.systemInstruction = { parts: [{ text: systemInstruction.content }] };
     }
-    body.generationConfig = { temperature: 0.4, maxOutputTokens: 8192 };
+    body.generationConfig = { temperature: 0.4, maxOutputTokens: options?.maxTokens ?? 8192 };
 
     const res = await fetch(`${GEMINI_API_BASE}/models/${model}:generateContent`, {
         method: "POST",
@@ -205,14 +207,15 @@ function getDefaultGeminiModels(): ModelInfo[] {
 
 export async function chatCompletion(
     model: string,
-    messages: ChatMessage[]
+    messages: ChatMessage[],
+    options?: { maxTokens?: number }
 ): Promise<ChatCompletionResult> {
     // Auto-detect provider from model name or settings
     if (isGeminiModel(model)) {
-        return geminiChatCompletion(model, messages);
+        return geminiChatCompletion(model, messages, options);
     }
     // Default to Copilot
-    return copilotChatCompletion(model, messages);
+    return copilotChatCompletion(model, messages, options);
 }
 
 function isGeminiModel(model: string): boolean {

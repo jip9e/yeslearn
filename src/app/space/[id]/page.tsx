@@ -428,9 +428,11 @@ export default function SpaceDetailPage() {
           sources: data.sources || [],
           followUpQuestions: data.followUpQuestions || [],
         };
-        const newMsgs = [...messages.filter((m) => m.id !== "temp-user"), data.userMessage, aiMsg];
-        setMessages(newMsgs);
-        setChatSessions(prev => prev.map(s => s.id === sessionId ? { ...s, messages: newMsgs } : s));
+        setMessages((prev) => {
+          const newMsgs = [...prev.filter((m) => m.id !== "temp-user"), data.userMessage, aiMsg];
+          setChatSessions(ps => ps.map(s => s.id === sessionId ? { ...s, messages: newMsgs } : s));
+          return newMsgs;
+        });
         setFollowUps(data.followUpQuestions || []);
       } else {
         setMessages((prev) => [...prev.filter((m) => m.id !== "temp-user"), data]);
@@ -862,15 +864,17 @@ export default function SpaceDetailPage() {
 
                   {/* Chat sessions as tabs */}
                   {chatSessions.slice(-3).map((session) => (
-                    <button
+                    <div
                       key={session.id}
+                      role="tab"
+                      tabIndex={0}
                       onClick={() => {
                         setAIPanelTab("chat");
                         setActiveChatId(session.id);
                         setMessages(session.messages);
                         setFollowUps(session.messages.length > 0 ? (session.messages[session.messages.length - 1].followUpQuestions || []) : []);
                       }}
-                      className={`group flex items-center gap-1.5 px-3 py-2.5 rounded-t-xl text-[12px] font-medium transition-all max-w-[140px] ${
+                      className={`group flex items-center gap-1.5 px-3 py-2.5 rounded-t-xl text-[12px] font-medium transition-all max-w-[140px] cursor-pointer select-none ${
                         aiPanelTab === "chat" && activeChatId === session.id
                           ? "bg-[#141420] text-white border border-[#1e1e3a] border-b-transparent"
                           : "text-[#555] hover:text-[#999] hover:bg-[#111118]"
@@ -892,7 +896,7 @@ export default function SpaceDetailPage() {
                       >
                         <X size={10} />
                       </button>
-                    </button>
+                    </div>
                   ))}
 
                   {/* New chat button */}
@@ -983,7 +987,7 @@ export default function SpaceDetailPage() {
                     {(space.summaries || []).length > 0 && (
                       <div>
                         <div className="flex items-center justify-between mb-3">
-                          <h4 className="text-[13px] font-semibold text-[#aaa]">Summary</h4>
+                          <h4 className="text-[14px] font-bold text-white">Summary</h4>
                           <button 
                             onClick={handleGenerateSummary} 
                             disabled={generatingSummary} 
@@ -994,12 +998,15 @@ export default function SpaceDetailPage() {
                         </div>
                         <div className="space-y-3">
                           {(space.summaries || []).map((s) => (
-                            <div key={s.id} className="p-4 rounded-xl border border-[#1e1e3a] bg-[#0d0d12]">
-                              <p className="text-[13px] font-medium mb-2 text-white">{s.title}</p>
-                              <div className="text-[13px] text-[#999] leading-relaxed prose-ai">
-                                <ReactMarkdown remarkPlugins={[remarkGfm]}>{s.content.slice(0, 300)}</ReactMarkdown>
+                            <details key={s.id} className="group rounded-xl border border-[#1e1e3a] bg-[#0d0d12] overflow-hidden">
+                              <summary className="flex items-center gap-2 px-4 py-3 cursor-pointer select-none hover:bg-[#1a1a2e] transition-colors">
+                                <ChevronRight size={14} className="text-[#8b5cf6] shrink-0 transition-transform group-open:rotate-90" />
+                                <span className="text-[13px] font-semibold text-white">{s.title}</span>
+                              </summary>
+                              <div className="px-4 pb-4 pt-1 text-[13px] leading-[1.8] text-[#ccc] [&_strong]:text-white [&_strong]:font-semibold [&_a]:text-[#a78bfa] [&_h1]:text-[17px] [&_h2]:text-[15px] [&_h3]:text-[14px] [&_h1]:font-bold [&_h2]:font-bold [&_h3]:font-semibold [&_h1]:text-white [&_h2]:text-[#e5e5e5] [&_h3]:text-[#ddd] [&_h1]:mt-4 [&_h1]:mb-2 [&_h2]:mt-3 [&_h2]:mb-1.5 [&_h3]:mt-2 [&_h3]:mb-1 [&_ul]:space-y-1 [&_ul]:my-2 [&_ul]:pl-5 [&_ul]:list-disc [&_ol]:space-y-1 [&_ol]:my-2 [&_ol]:pl-5 [&_ol]:list-decimal [&_li]:leading-relaxed [&_li]:marker:text-[#8b5cf6] [&_p]:mb-2 [&_p:last-child]:mb-0 [&_code]:text-[12px] [&_code]:bg-[#8b5cf6]/10 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded-md [&_code]:text-[#d4bfff] [&_pre]:bg-[#0d0d12] [&_pre]:p-3 [&_pre]:rounded-xl [&_pre]:border [&_pre]:border-[#1e1e3a] [&_pre]:overflow-x-auto [&_blockquote]:border-l-2 [&_blockquote]:border-[#8b5cf6]/40 [&_blockquote]:pl-3 [&_blockquote]:text-[#999] [&_blockquote]:italic [&_table]:w-full [&_table]:border-collapse [&_table]:my-3 [&_table]:text-[12px] [&_th]:bg-[#1a1a2e] [&_th]:text-[#e5e5e5] [&_th]:font-semibold [&_th]:px-3 [&_th]:py-2 [&_th]:border [&_th]:border-[#1e1e3a] [&_th]:text-left [&_td]:px-3 [&_td]:py-2 [&_td]:border [&_td]:border-[#1e1e3a] [&_td]:text-[#bbb] [&_hr]:border-[#1e1e3a] [&_hr]:my-4">
+                                <ReactMarkdown remarkPlugins={[remarkGfm]}>{s.content}</ReactMarkdown>
                               </div>
-                            </div>
+                            </details>
                           ))}
                         </div>
                       </div>

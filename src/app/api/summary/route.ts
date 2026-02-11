@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
 
         const contextText = spaceContent
             .filter(c => c.text)
-            .map(c => `--- ${c.name} ---\n${c.text!.slice(0, 10000)}`)
+            .map(c => `--- ${c.name} ---\n${c.text!.slice(0, 20000)}`)
             .join("\n\n");
 
         if (!contextText.trim()) {
@@ -57,27 +57,36 @@ export async function POST(req: NextRequest) {
         const messages = [
             {
                 role: "system" as const,
-                content: `You are a premium study assistant that creates detailed, beautifully formatted summaries. Output your response as a JSON array of sections, each with "title" and "content" keys.
+                content: `You are a world-class academic study assistant. You create extremely detailed, university-level structured summaries that rival the best study tools.
 
-Rules for content formatting:
-- Use **markdown** inside the "content" field: **bold** for key terms, bullet points for lists, numbered steps for processes
-- Each section should be thorough (3-5 paragraphs or equivalent with bullet points)
-- Create 4-8 sections covering all key topics comprehensively
-- Start each section with a brief overview sentence, then dive into details
-- Use analogies and examples where helpful
+Output your response as a JSON array of sections, each with "title" and "content" keys.
+
+CRITICAL FORMATTING RULES for the "content" field:
+- Write in the SAME LANGUAGE as the source material (if French, write in French; if English, write in English, etc.)
+- Use rich **markdown**: ## subheaders within sections, **bold** for ALL key terms/definitions, bullet points, numbered lists, tables where appropriate
+- Start each section with a 2-3 sentence overview paragraph explaining the significance/context
+- Then provide DETAILED content with every important fact, definition, relationship, and mechanism
+- Use markdown tables (|col1|col2|) for comparisons, classifications, or structured data
+- Bold ALL technical terms, anatomical structures, chemical names, formulas, dates, proper nouns
+- Include dimensions, measurements, and specific values when present in the source
+- Subsections within content using ### headers
+- Create 5-12 sections covering EVERY topic in the source material — do NOT skip or summarize away detail
+- Each section should be LONG and thorough — 500-2000 words of content
+- Preserve the logical structure and hierarchy of the original material
+- End with a conclusion section highlighting clinical/practical importance
 
 Example format:
-[{"title": "Introduction to Topic", "content": "**Overview**: The topic covers...\\n\\n- **Key concept 1**: explanation\\n- **Key concept 2**: explanation\\n\\nThis is important because..."}, {"title": "Key Concepts", "content": "..."}]
+[{"title": "Définition et Généralités", "content": "Le **terme** désigne...\n\n### Étymologie\n\nLe mot vient du latin...\n\n### Caractéristiques principales\n\n- **Point 1**: détail complet...\n- **Point 2**: détail complet...\n\n| Propriété | Valeur |\n|-----------|--------|\n| Taille | 15-20 cm |"}, {"title": "Anatomie Descriptive", "content": "..."}]
 
-IMPORTANT: Return ONLY valid JSON, no markdown code fences, no extra text.`,
+IMPORTANT: Return ONLY valid JSON, no markdown code fences, no extra text. Each section must be comprehensive — do NOT truncate or abbreviate.`,
             },
             {
                 role: "user" as const,
-                content: `Create a comprehensive study summary of the following learning materials:\n\n${contextText}`,
+                content: `Create an exhaustive, highly detailed academic summary of ALL the following learning materials. Cover every topic, subtopic, definition, measurement, and relationship. Do not skip any content:\n\n${contextText}`,
             },
         ];
 
-        const result = await chatCompletion(model, messages);
+        const result = await chatCompletion(model, messages, { maxTokens: 16384 });
 
         // Parse sections
         let sections: { title: string; content: string }[] = [];

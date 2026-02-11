@@ -30,6 +30,8 @@ export interface QuizQuestion {
   question: string;
   options: string[];
   correctIndex: number;
+  correctIndices?: number[]; // for QCM (multiple correct)
+  quizMode?: "qcu" | "qcm";
 }
 
 export interface SpaceData {

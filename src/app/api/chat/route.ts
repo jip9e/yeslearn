@@ -119,7 +119,7 @@ Third follow-up question here?
 ---end-follow-up---`;
 
         // Detect language from context or user message
-        const detectLanguageInstruction = `Detect the language of the student's message and the source material. ALWAYS respond in the SAME language as the student's message. If the student writes in French, respond in French. If in English, respond in English. If in Arabic, respond in Arabic. Match the student's language exactly.`;
+        const detectLanguageInstruction = `CRITICAL LANGUAGE RULE: You MUST detect the language of the source material and any quoted text (text after ">"). ALWAYS respond in the SAME language as the quoted text or source material. If the quoted text is in French, respond entirely in French. If the source material is in French and the student quotes French text, respond in French — even if the student's instruction is in English. The language of the quoted content and source material ALWAYS takes priority over the language of the instruction.`;
 
         const systemPrompt = contextText
             ? `You are YesLearn AI, a premium AI study tutor. You help students deeply understand their learning materials.

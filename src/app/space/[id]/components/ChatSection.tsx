@@ -81,7 +81,7 @@ export function ChatSection({
               </p>
             </div>
             <div className="flex flex-wrap gap-2 justify-center mt-2 max-w-[360px]">
-              {["Explain the key concepts", "Summarize the main points", "Create a quick quiz"].map((chip) => (
+              {["Explain the key concepts", "Summarize the main points", "Create a practice quiz"].map((chip) => (
                 <button
                   key={chip}
                   onClick={() => {

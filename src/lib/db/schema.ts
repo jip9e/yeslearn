@@ -67,7 +67,9 @@ export const quizQuestions = sqliteTable("quiz_questions", {
         .references(() => spaces.id, { onDelete: "cascade" }),
     question: text("question").notNull(),
     options: text("options").notNull(), // JSON array
-    correctIndex: integer("correct_index").notNull(),
+    correctIndex: integer("correct_index").notNull(), // kept for backward compat
+    correctIndices: text("correct_indices"), // JSON array of correct indices (for QCM)
+    quizMode: text("quiz_mode").default("qcu"), // "qcu" or "qcm"
     createdAt: text("created_at")
         .default(sql`(datetime('now'))`)
         .notNull(),

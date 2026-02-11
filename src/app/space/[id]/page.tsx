@@ -32,13 +32,14 @@ export default function SpaceDetailPage() {
   const [selectedContent, setSelectedContent] = useState<string | null>(null);
   const [chatInput, setChatInput] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [quizAnswers, setQuizAnswers] = useState<Record<number, number>>({});
+  const [quizAnswers, setQuizAnswers] = useState<Record<number, number[]>>({});
   const [quizSubmitted, setQuizSubmitted] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [sendingChat, setSendingChat] = useState(false);
   const [generatingSummary, setGeneratingSummary] = useState(false);
   const [generatingQuiz, setGeneratingQuiz] = useState(false);
-  const [quizCount] = useState(5);
+  const [quizCount, setQuizCount] = useState(10);
+  const [quizMode, setQuizMode] = useState<"qcu" | "qcm">("qcu");
   const [focusTab, setFocusTab] = useState<FocusTab>("content");
 
   const [rightPanelTab, setRightPanelTab] = useState<"learn" | "chat">("learn");
@@ -210,9 +211,9 @@ export default function SpaceDetailPage() {
     setMessages([]);
     setRightPanelTab("chat");
 
-    if (action === "explain") handleSendMessage("Explain this concept in detail:", text);
-    else if (action === "summarize") handleSendMessage("Summarize this in simple terms:", text);
-    else if (action === "quiz") handleSendMessage("Create a quick quiz question about this:", text);
+    if (action === "explain") handleSendMessage("[Respond in the same language as the quoted text below] Explain this concept in detail:", text);
+    else if (action === "summarize") handleSendMessage("[Respond in the same language as the quoted text below] Summarize this in simple terms:", text);
+    else if (action === "quiz") handleSendMessage("[Respond in the same language as the quoted text below] Create a quick quiz question about this:", text);
   };
 
   const openChatSession = useCallback((session: ChatSession) => {
@@ -258,11 +259,14 @@ export default function SpaceDetailPage() {
     setQuizAnswers({});
     setQuizSubmitted(false);
     try {
-      const res = await fetch("/api/quiz", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ spaceId, questionCount: quizCount }) });
+      const res = await fetch("/api/quiz", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ spaceId, questionCount: quizCount, quizMode }) });
       const data = await res.json();
       if (data.questions && space) {
         const parsed = data.questions.map((q: any) => ({
-          ...q, options: typeof q.options === "string" ? JSON.parse(q.options) : q.options,
+          ...q,
+          options: typeof q.options === "string" ? JSON.parse(q.options) : q.options,
+          correctIndices: typeof q.correctIndices === "string" ? JSON.parse(q.correctIndices) : (q.correctIndices || [q.correctIndex]),
+          quizMode: q.quizMode || data.quizMode || quizMode,
         }));
         setSpace({ ...space, quizQuestions: parsed });
       } else if (data.error) {
@@ -386,20 +390,20 @@ export default function SpaceDetailPage() {
         {/* Center: Main content area */}
         <section className="flex flex-1 flex-col min-w-0" ref={contentRef}>
           {/* Tabs */}
-          <div className="flex items-center border-b border-border bg-background px-1">
+          <div className="flex items-center gap-1 border-b border-border bg-background px-3 pt-1">
             {(["content", "explain", "practice"] as const).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setFocusTab(tab)}
-                className={`px-4 py-2.5 text-[12px] font-medium capitalize transition-colors relative ${
+                className={`px-3.5 py-2 text-[12px] font-medium capitalize transition-colors relative rounded-t-lg ${
                   focusTab === tab
-                    ? "text-foreground"
-                    : "text-muted-foreground hover:text-foreground"
+                    ? "text-foreground bg-secondary/50"
+                    : "text-muted-foreground/60 hover:text-muted-foreground"
                 }`}
               >
                 {tab}
                 {focusTab === tab && (
-                  <span className="absolute bottom-0 left-2 right-2 h-0.5 bg-foreground rounded-full" />
+                  <span className="absolute bottom-0 left-3 right-3 h-[2px] bg-primary rounded-full" />
                 )}
               </button>
             ))}
@@ -439,6 +443,10 @@ export default function SpaceDetailPage() {
                 setQuizSubmitted={setQuizSubmitted}
                 generatingQuiz={generatingQuiz}
                 handleGenerateQuiz={handleGenerateQuiz}
+                quizCount={quizCount}
+                setQuizCount={setQuizCount}
+                quizMode={quizMode}
+                setQuizMode={setQuizMode}
               />
             )}
           </div>
@@ -458,35 +466,35 @@ export default function SpaceDetailPage() {
         >
           <div className="flex flex-col h-full min-w-[400px] max-md:min-w-full">
             {/* Panel tab bar */}
-            <div className="flex items-center border-b border-border shrink-0">
+            <div className="flex items-center border-b border-border shrink-0 bg-card">
               <button
                 onClick={() => setRightPanelTab("learn")}
-                className={`flex-1 px-4 py-3 text-[13px] font-medium text-center transition-colors relative ${
-                  rightPanelTab === "learn" ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+                className={`flex-1 px-4 py-2.5 text-[12px] font-medium text-center transition-colors relative ${
+                  rightPanelTab === "learn" ? "text-foreground" : "text-muted-foreground/60 hover:text-muted-foreground"
                 }`}
               >
                 Learn
                 {rightPanelTab === "learn" && (
-                  <span className="absolute bottom-0 left-4 right-4 h-0.5 bg-foreground rounded-full" />
+                  <span className="absolute bottom-0 left-6 right-6 h-[2px] bg-primary rounded-full" />
                 )}
               </button>
               <button
                 onClick={() => { setRightPanelTab("chat"); if (!activeChatId) createNewChat(); }}
-                className={`flex-1 px-4 py-3 text-[13px] font-medium text-center transition-colors relative ${
-                  rightPanelTab === "chat" ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+                className={`flex-1 px-4 py-2.5 text-[12px] font-medium text-center transition-colors relative ${
+                  rightPanelTab === "chat" ? "text-foreground" : "text-muted-foreground/60 hover:text-muted-foreground"
                 }`}
               >
                 Chat
                 {rightPanelTab === "chat" && (
-                  <span className="absolute bottom-0 left-4 right-4 h-0.5 bg-foreground rounded-full" />
+                  <span className="absolute bottom-0 left-6 right-6 h-[2px] bg-primary rounded-full" />
                 )}
               </button>
               <button
                 onClick={() => setRightPanelOpen(false)}
-                className="px-3 py-3 text-muted-foreground hover:text-foreground"
+                className="px-3 py-2.5 text-muted-foreground/40 hover:text-foreground transition-colors"
                 aria-label="Close panel"
               >
-                <X size={16} />
+                <X size={14} />
               </button>
             </div>
 
@@ -504,6 +512,10 @@ export default function SpaceDetailPage() {
                   setQuizAnswers={setQuizAnswers}
                   quizSubmitted={quizSubmitted}
                   setQuizSubmitted={setQuizSubmitted}
+                  quizCount={quizCount}
+                  setQuizCount={setQuizCount}
+                  quizMode={quizMode}
+                  setQuizMode={setQuizMode}
                   chatInput={chatInput}
                   setChatInput={setChatInput}
                   handleSendMessage={() => handleSendMessage()}

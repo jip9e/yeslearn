@@ -91,6 +91,8 @@ function initTables(sqlite: Database.Database) {
       question TEXT NOT NULL,
       options TEXT NOT NULL,
       correct_index INTEGER NOT NULL,
+      correct_indices TEXT,
+      quiz_mode TEXT DEFAULT 'qcu',
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
@@ -99,4 +101,16 @@ function initTables(sqlite: Database.Database) {
       value TEXT NOT NULL
     );
   `);
+
+    // ── Migrations for existing databases ──────────────────
+    const addColumnIfMissing = (table: string, column: string, type: string, def?: string) => {
+        try {
+            const cols = sqlite.pragma(`table_info(${table})`) as { name: string }[];
+            if (!cols.find(c => c.name === column)) {
+                sqlite.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${type}${def ? ` DEFAULT ${def}` : ""}`);
+            }
+        } catch { /* table may not exist yet */ }
+    };
+    addColumnIfMissing("quiz_questions", "correct_indices", "TEXT");
+    addColumnIfMissing("quiz_questions", "quiz_mode", "TEXT", "'qcu'");
 }

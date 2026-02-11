@@ -42,7 +42,6 @@ const QUICK_ACTIONS = [
   { label: "YouTube Video", icon: Youtube, href: "/dashboard/add?type=youtube" },
   { label: "PDF / Document", icon: FileText, href: "/dashboard/add?type=pdf" },
   { label: "Website URL", icon: Globe, href: "/dashboard/add?type=website" },
-  { label: "Audio / Recording", icon: Mic, href: "/dashboard/add?type=audio" },
 ];
 
 const TYPE_ICONS: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
@@ -83,20 +82,20 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="p-4 sm:p-6 md:p-8 max-w-[1200px] mx-auto pl-14 md:pl-8">
+      <div className="p-4 sm:p-6 md:p-8 max-w-[1200px] mx-auto pl-14 md:pl-8" role="status" aria-label="Loading dashboard">
         <div className="space-y-8">
           <div className="space-y-3">
-            <div className="h-10 bg-gray-200 dark:bg-gray-800 rounded-lg w-64 sm:w-80 animate-pulse" />
-            <div className="h-5 bg-gray-100 dark:bg-gray-900 rounded w-72 sm:w-96 animate-pulse" />
+            <div className="h-10 bg-secondary rounded-lg w-64 sm:w-80 animate-pulse" />
+            <div className="h-5 bg-secondary rounded w-72 sm:w-96 animate-pulse" />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="h-32 bg-gray-100 dark:bg-gray-900 rounded-xl animate-pulse" />
+              <div key={i} className="h-32 bg-secondary rounded-xl animate-pulse" />
             ))}
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
             {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="h-28 bg-gray-100 dark:bg-gray-900 rounded-xl animate-pulse" />
+              <div key={i} className="h-28 bg-secondary rounded-xl animate-pulse" />
             ))}
           </div>
         </div>
@@ -105,7 +104,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-[#0a0a0a]">
+    <div className="min-h-screen bg-background">
       <div className="p-4 sm:p-6 md:p-8 max-w-[1200px] mx-auto space-y-8 md:space-y-10 pl-14 md:pl-8">
         {/* Welcome Header with Animation */}
         <motion.div 
@@ -115,12 +114,12 @@ export default function DashboardPage() {
           className="space-y-2"
         >
           <div className="flex items-center gap-3">
-            <h1 className="text-[24px] sm:text-[32px] font-bold tracking-tight text-gray-900 dark:text-white">
+            <h1 className="text-[24px] sm:text-[32px] font-bold tracking-tight text-foreground">
               Welcome to YesLearn
             </h1>
-            <Sparkles className="w-5 h-5 text-gray-400" aria-hidden="true" />
+            <Sparkles className="w-5 h-5 text-muted-foreground/80" aria-hidden="true" />
           </div>
-          <p className="text-gray-600 dark:text-gray-400 text-[16px]">
+          <p className="text-muted-foreground text-[16px]">
             {spaces.length > 0
               ? "Continue your learning journey or add new content to your spaces."
               : "Get started by creating your first learning space."}
@@ -144,21 +143,21 @@ export default function DashboardPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.1 + index * 0.1 }}
-              className="group relative bg-white dark:bg-[#111] rounded-xl border border-gray-200 dark:border-gray-800 p-5 sm:p-6 transition-all duration-300 overflow-hidden"
+              className="group relative bg-card rounded-xl border border-border p-5 sm:p-6 transition-all duration-300 overflow-hidden"
             >
               <div className="relative flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                <div className="w-12 h-12 rounded-xl bg-secondary flex items-center justify-center">
                   <stat.icon 
                     size={22} 
-                    className="text-gray-600 dark:text-gray-400"
+                    className="text-muted-foreground"
                     aria-hidden="true"
                   />
                 </div>
                 <div>
-                  <p className="text-[24px] sm:text-[28px] font-bold text-gray-900 dark:text-white mb-0.5">
+                  <p className="text-[24px] sm:text-[28px] font-bold text-foreground mb-0.5">
                     {stat.value}
                   </p>
-                  <p className="text-[12px] sm:text-[13px] text-gray-500 dark:text-gray-400 font-medium">
+                  <p className="text-[12px] sm:text-[13px] text-muted-foreground font-medium">
                     {stat.label}
                   </p>
                 </div>
@@ -175,16 +174,16 @@ export default function DashboardPage() {
           className="space-y-5"
         >
           <div className="flex items-center justify-between">
-            <h2 className="text-[20px] font-semibold text-gray-900 dark:text-white">Quick Add Content</h2>
+            <h2 className="text-[20px] font-semibold text-foreground">Quick Add Content</h2>
             <Link 
               href="/dashboard/add" 
-              className="flex items-center gap-1.5 text-[14px] text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors group"
+              className="flex items-center gap-1.5 text-[14px] text-muted-foreground hover:text-foreground transition-colors group"
             >
               All types 
               <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
             </Link>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
             {QUICK_ACTIONS.map((action, index) => (
               <motion.div
                 key={action.label}
@@ -196,13 +195,13 @@ export default function DashboardPage() {
               >
                 <Link
                   href={action.href}
-                  className="group block bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-5 hover:border-gray-300 dark:hover:border-gray-700 hover:shadow-lg transition-all duration-300"
+                  className="group block bg-card rounded-xl border border-border p-5 hover:border-border/80 hover:shadow-lg transition-all duration-300"
                 >
                   <div className="flex flex-col items-center gap-3">
-                    <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
-                      <action.icon size={22} className="text-gray-700 dark:text-gray-300" />
+                    <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-secondary flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
+                      <action.icon size={22} className="text-muted-foreground" aria-hidden="true" />
                     </div>
-                    <span className="text-[13px] sm:text-[14px] font-medium text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white transition-colors text-center">
+                    <span className="text-[13px] sm:text-[14px] font-medium text-muted-foreground group-hover:text-foreground transition-colors text-center">
                       {action.label}
                     </span>
                   </div>
@@ -220,10 +219,10 @@ export default function DashboardPage() {
           className="space-y-5"
         >
           <div className="flex items-center justify-between">
-            <h2 className="text-[20px] font-semibold text-gray-900 dark:text-white">My Spaces</h2>
+            <h2 className="text-[20px] font-semibold text-foreground">My Spaces</h2>
             <Link 
               href="/space/new" 
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-medium text-[14px] hover:opacity-90 transition-all shadow-sm hover:shadow-md"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground font-medium text-[14px] hover:opacity-90 transition-all shadow-sm hover:shadow-md"
             >
               <Plus size={16} /> New Space
             </Link>
@@ -239,24 +238,24 @@ export default function DashboardPage() {
               >
                 <Link
                   href={`/space/${space.id}`}
-                  className="group block bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6 hover:border-gray-300 dark:hover:border-gray-700 hover:shadow-xl transition-all duration-300"
+                  className="group block bg-card rounded-2xl border border-border p-6 hover:border-border/80 hover:shadow-xl transition-all duration-300"
                 >
                   <div className="flex items-center gap-4 mb-4">
-                    <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-black dark:bg-white flex items-center justify-center text-white dark:text-black text-[16px] sm:text-[18px] font-bold">
+                    <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-primary flex items-center justify-center text-primary-foreground text-[16px] sm:text-[18px] font-bold">
                       {space.name.charAt(0).toUpperCase()}
                     </div>
-                    <h3 className="text-[15px] sm:text-[17px] font-semibold text-gray-900 dark:text-white transition-colors flex-1 truncate">
+                    <h3 className="text-[15px] sm:text-[17px] font-semibold text-foreground transition-colors flex-1 truncate">
                       {space.name}
                     </h3>
                   </div>
-                  <div className="flex items-center justify-between pt-3 border-t border-gray-100 dark:border-gray-800">
+                  <div className="flex items-center justify-between pt-3 border-t border-border/70">
                     <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-gray-400 dark:bg-gray-600" />
-                      <span className="text-[13px] text-gray-600 dark:text-gray-400">
+                      <div className="w-2 h-2 rounded-full bg-muted-foreground/70" />
+                      <span className="text-[13px] text-muted-foreground">
                         {space.itemCount} item{space.itemCount !== 1 ? 's' : ''}
                       </span>
                     </div>
-                    <span className="text-[12px] text-gray-400 dark:text-gray-500">
+                    <span className="text-[12px] text-muted-foreground/80">
                       {timeAgo(space.updatedAt)}
                     </span>
                   </div>
@@ -271,12 +270,12 @@ export default function DashboardPage() {
             >
               <Link
                 href="/space/new"
-                className="flex flex-col items-center justify-center gap-3 bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-gray-800 rounded-2xl border-2 border-dashed border-gray-300 dark:border-gray-700 p-8 hover:border-gray-400 dark:hover:border-gray-600 hover:shadow-lg transition-all duration-300 min-h-[160px] group"
+                className="flex flex-col items-center justify-center gap-3 bg-card rounded-2xl border-2 border-dashed border-border p-8 hover:border-border/80 hover:shadow-lg transition-all duration-300 min-h-[160px] group"
               >
-                <div className="w-12 h-12 rounded-full bg-gray-200 dark:bg-gray-800 flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <Plus size={24} className="text-gray-400 dark:text-gray-600" />
+                <div className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Plus size={24} className="text-muted-foreground/80" />
                 </div>
-                <span className="text-[14px] font-medium text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-300 transition-colors">
+                <span className="text-[14px] font-medium text-muted-foreground group-hover:text-foreground transition-colors">
                   Create New Space
                 </span>
               </Link>
@@ -292,8 +291,8 @@ export default function DashboardPage() {
             transition={{ duration: 0.5, delay: 0.5 }}
             className="space-y-5"
           >
-            <h2 className="text-[20px] font-semibold text-gray-900 dark:text-white">Recent Activity</h2>
-            <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 overflow-hidden shadow-sm">
+            <h2 className="text-[20px] font-semibold text-foreground">Recent Activity</h2>
+            <div className="bg-card rounded-2xl border border-border overflow-hidden shadow-sm">
               {stats.recentActivity.map((item, i) => {
                 const IconComponent = TYPE_ICONS[item.type] || FileText;
                 return (
@@ -305,24 +304,24 @@ export default function DashboardPage() {
                   >
                     <Link
                       href={`/space/${item.spaceId}`}
-                      className={`flex items-center gap-5 px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-all duration-200 group ${
-                        i < stats.recentActivity.length - 1 ? "border-b border-gray-100 dark:border-gray-800" : ""
+                      className={`flex items-center gap-5 px-6 py-4 hover:bg-secondary transition-all duration-200 group ${
+                        i < stats.recentActivity.length - 1 ? "border-b border-border/70" : ""
                       }`}
                     >
-                      <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-gray-100 to-gray-50 dark:from-gray-800 dark:to-gray-900 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform shadow-sm">
-                        <IconComponent size={20} className="text-gray-600 dark:text-gray-400" />
+                      <div className="w-11 h-11 rounded-xl bg-secondary flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform shadow-sm">
+                        <IconComponent size={20} className="text-muted-foreground" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-[14px] sm:text-[15px] font-medium truncate text-gray-900 dark:text-white transition-colors">
+                        <p className="text-[14px] sm:text-[15px] font-medium truncate text-foreground transition-colors">
                           {item.name}
                         </p>
-                        <p className="text-[13px] text-gray-500 dark:text-gray-400 mt-0.5">{item.spaceName}</p>
+                        <p className="text-[13px] text-muted-foreground mt-0.5">{item.spaceName}</p>
                       </div>
                       <div className="flex items-center gap-3 shrink-0">
-                        <span className="text-[12px] px-3 py-1.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 font-medium">
+                        <span className="text-[12px] px-3 py-1.5 rounded-full bg-secondary text-muted-foreground font-medium">
                           {item.type}
                         </span>
-                        <span className="text-[12px] text-gray-400 dark:text-gray-500 w-20 text-right">
+                        <span className="text-[12px] text-muted-foreground/80 w-20 text-right">
                           {timeAgo(item.createdAt)}
                         </span>
                       </div>

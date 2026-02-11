@@ -106,10 +106,10 @@ export default function PricingPage() {
                 </ul>
                 <Link
                   href={plan.href}
-                  className={`w-full py-3 rounded-xl text-[14px] font-medium text-center transition-all ${
+                  className={`w-full py-3 rounded-xl text-[14px] font-medium text-center transition-all block focus-visible:ring-2 focus-visible:ring-offset-2 ${
                     plan.popular
-                      ? "bg-white text-black hover:bg-white/90"
-                      : "bg-black text-white hover:opacity-90"
+                      ? "bg-white text-black hover:bg-white/90 focus-visible:ring-white"
+                      : "bg-black dark:bg-white text-white dark:text-black hover:opacity-90 focus-visible:ring-black dark:focus-visible:ring-white"
                   }`}
                 >
                   {plan.cta}

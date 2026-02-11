@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import React, { useState, useEffect, createContext, useContext } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -105,14 +105,17 @@ export default function AppSidebar() {
       {/* Mobile toggle button */}
       <button
         onClick={toggle}
-        className="fixed top-3 left-3 z-30 p-2 rounded-lg bg-white dark:bg-[#0a0a0a] border border-[#eee] dark:border-[#1a1a1a] shadow-sm md:hidden"
+        aria-label="Open sidebar"
+        className="fixed top-3 left-3 z-30 p-2 rounded-lg bg-background border border-border shadow-sm md:hidden focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-black dark:focus-visible:ring-white"
       >
-        <PanelLeftOpen size={16} className="text-[#888]" />
+        <PanelLeftOpen size={16} className="text-muted-foreground" />
       </button>
 
       <aside
+        role="navigation"
+        aria-label="App sidebar"
         className={`
-          h-screen bg-white dark:bg-[#0a0a0a] border-r border-[#eee] dark:border-[#1a1a1a] flex flex-col shrink-0 overflow-hidden transition-all duration-300 ease-in-out
+          h-screen bg-background border-r border-border flex flex-col shrink-0 overflow-hidden transition-all duration-300 ease-in-out
           ${collapsed ? "w-[60px]" : "w-[240px]"}
           max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:z-50 max-md:w-[260px] max-md:shadow-2xl
           ${mobileOpen ? "max-md:translate-x-0" : "max-md:-translate-x-full"}
@@ -122,15 +125,16 @@ export default function AppSidebar() {
       <div className="px-3 py-3 flex items-center justify-between shrink-0">
         {!collapsed && (
           <Link href="/dashboard" className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-black dark:bg-white flex items-center justify-center">
-              <span className="text-white dark:text-black font-bold text-[12px]">Y</span>
+            <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
+              <span className="text-primary-foreground font-bold text-[12px]">Y</span>
             </div>
-            <span className="text-[15px] font-semibold tracking-tight dark:text-white">YesLearn</span>
+            <span className="text-[15px] font-semibold tracking-tight text-foreground">YesLearn</span>
           </Link>
         )}
         <button
           onClick={toggle}
-          className={`p-1.5 rounded-lg hover:bg-[#f0f0f0] dark:hover:bg-[#1a1a1a] transition-colors text-[#888] ${collapsed ? "mx-auto" : ""}`}
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          className={`p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-black dark:focus-visible:ring-white ${collapsed ? "mx-auto" : ""}`}
         >
           {collapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
         </button>
@@ -139,10 +143,13 @@ export default function AppSidebar() {
       {/* Search */}
       {!collapsed && (
         <div className="px-3 pb-2">
-          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#f5f5f5] dark:bg-[#141414] text-[#999]">
+          <Link
+            href="/dashboard"
+            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-secondary text-muted-foreground/80 hover:bg-secondary transition-colors"
+          >
             <Search size={13} />
-            <span className="text-[12px]">Search...</span>
-          </div>
+            <span className="text-[12px]">Search spacesâ€¦</span>
+          </Link>
         </div>
       )}
 
@@ -152,8 +159,8 @@ export default function AppSidebar() {
           <Link
             href="/dashboard"
             className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] font-medium transition-all duration-150 ${isActive("/dashboard")
-                ? "bg-[#f0f0f0] dark:bg-[#1a1a1a] text-black dark:text-white"
-                : "text-[#666] dark:text-[#888] hover:bg-[#f5f5f5] dark:hover:bg-[#141414] hover:text-black dark:hover:text-white"
+                ? "bg-secondary text-foreground"
+                : "text-muted-foreground hover:bg-secondary hover:text-foreground"
               } ${collapsed ? "justify-center" : ""}`}
           >
             <Home size={16} />
@@ -165,7 +172,9 @@ export default function AppSidebar() {
             {!collapsed && (
               <button
                 onClick={() => setSpacesOpen(!spacesOpen)}
-                className="flex items-center justify-between w-full px-2.5 py-1.5 text-[10px] font-semibold text-[#aaa] dark:text-[#555] uppercase tracking-widest hover:text-[#666] dark:hover:text-[#888]"
+                aria-expanded={spacesOpen}
+                aria-label="Toggle spaces list"
+                className="flex items-center justify-between w-full px-2.5 py-1.5 text-[10px] font-semibold text-muted-foreground/80 uppercase tracking-widest hover:text-muted-foreground focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-black dark:focus-visible:ring-white rounded"
               >
                 <span>Spaces</span>
                 {spacesOpen ? <ChevronDown size={10} /> : <ChevronRight size={10} />}
@@ -175,12 +184,12 @@ export default function AppSidebar() {
             {(collapsed || spacesOpen) && (
               <div className="flex flex-col gap-0.5 mt-0.5">
                 {loading ? (
-                  <div className={`px-2.5 py-2 text-[11px] text-[#ccc] ${collapsed ? "text-center" : ""}`}>
+                  <div className={`px-2.5 py-2 text-[11px] text-muted-foreground/70 ${collapsed ? "text-center" : ""}`}>
                     {collapsed ? "..." : "Loading..."}
                   </div>
                 ) : spaces.length === 0 ? (
-                  <div className={`px-2.5 py-2 text-[11px] text-[#ccc] ${collapsed ? "text-center" : ""}`}>
-                    {collapsed ? "—" : "No spaces yet"}
+                  <div className={`px-2.5 py-2 text-[11px] text-muted-foreground/70 ${collapsed ? "text-center" : ""}`}>
+                    {collapsed ? "â€”" : "No spaces yet"}
                   </div>
                 ) : (
                   spaces.map((space) => (
@@ -189,20 +198,20 @@ export default function AppSidebar() {
                       href={`/space/${space.id}`}
                       title={collapsed ? space.name : undefined}
                       className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] transition-all duration-150 group ${isSpaceActive(space.id)
-                          ? "bg-[#f0f0f0] dark:bg-[#1a1a1a] text-black dark:text-white font-medium"
-                          : "text-[#666] dark:text-[#888] hover:bg-[#f5f5f5] dark:hover:bg-[#141414] hover:text-black dark:hover:text-white"
+                          ? "bg-secondary text-foreground font-medium"
+                          : "text-muted-foreground hover:bg-secondary hover:text-foreground"
                         } ${collapsed ? "justify-center" : ""}`}
                     >
                       <div className={`w-6 h-6 rounded-md flex items-center justify-center text-[11px] font-semibold shrink-0 ${isSpaceActive(space.id)
-                          ? "bg-black dark:bg-white text-white dark:text-black"
-                          : "bg-[#f0f0f0] dark:bg-[#1a1a1a] text-[#666] dark:text-[#888]"
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-secondary text-muted-foreground"
                         }`}>
                         {getInitial(space.name)}
                       </div>
                       {!collapsed && (
                         <>
                           <span className="truncate flex-1">{space.name}</span>
-                          <span className="text-[10px] text-[#ccc] dark:text-[#444] group-hover:text-[#999]">
+                          <span className="text-[10px] text-muted-foreground/70  group-hover:text-muted-foreground/80">
                             {space.itemCount}
                           </span>
                         </>
@@ -213,7 +222,7 @@ export default function AppSidebar() {
                 <Link
                   href="/space/new"
                   title={collapsed ? "New Space" : undefined}
-                  className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] text-[#aaa] dark:text-[#555] hover:bg-[#f5f5f5] dark:hover:bg-[#141414] hover:text-black dark:hover:text-white transition-all duration-150 ${collapsed ? "justify-center" : ""}`}
+                  className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] text-muted-foreground/80 hover:bg-secondary hover:text-foreground transition-all duration-150 ${collapsed ? "justify-center" : ""}`}
                 >
                   <Plus size={14} />
                   {!collapsed && <span>New Space</span>}
@@ -225,13 +234,13 @@ export default function AppSidebar() {
       </nav>
 
       {/* Bottom */}
-      <div className="border-t border-[#eee] dark:border-[#1a1a1a] px-2 py-2 flex flex-col gap-0.5">
+      <div className="border-t border-border px-2 py-2 flex flex-col gap-0.5">
         <Link
           href="/settings"
           title={collapsed ? "Settings" : undefined}
           className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] transition-all duration-150 ${isActive("/settings")
-              ? "bg-[#f0f0f0] dark:bg-[#1a1a1a] text-black dark:text-white font-medium"
-              : "text-[#666] dark:text-[#888] hover:bg-[#f5f5f5] dark:hover:bg-[#141414] hover:text-black dark:hover:text-white"
+              ? "bg-secondary text-foreground font-medium"
+              : "text-muted-foreground hover:bg-secondary hover:text-foreground"
             } ${collapsed ? "justify-center" : ""}`}
         >
           <Settings size={16} />
@@ -242,3 +251,4 @@ export default function AppSidebar() {
     </>
   );
 }
+

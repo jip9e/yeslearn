@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import AppSidebar from "@/components/app/sidebar";
@@ -25,7 +25,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 
-// ── Types ────────────────────────────────────────────────────
+// â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface ProviderStatus {
   connected: boolean;
@@ -43,7 +43,7 @@ interface DeviceCodeData {
   interval: number;
 }
 
-// ── Provider metadata ────────────────────────────────────────
+// â”€â”€ Provider metadata â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const PROVIDERS = [
   {
@@ -51,9 +51,9 @@ const PROVIDERS = [
     name: "GitHub Copilot",
     description: "Access GPT-4o, GPT-4.1, Claude Sonnet 4 and more via your Copilot subscription",
     icon: Github,
-    color: "text-[#333] dark:text-[#ccc]",
-    bg: "bg-[#f5f5f5] dark:bg-[#141414]",
-    border: "border-[#e0e0e0] dark:border-[#2a2a2a]",
+    color: "text-foreground",
+    bg: "bg-secondary",
+    border: "border-border",
     authType: "device-code" as const,
   },
   {
@@ -61,9 +61,9 @@ const PROVIDERS = [
     name: "Google Gemini",
     description: "Access Gemini 2.5 Pro, Gemini 2.5 Flash via Google Cloud",
     icon: Sparkles,
-    color: "text-[#333] dark:text-[#ccc]",
-    bg: "bg-[#f5f5f5] dark:bg-[#141414]",
-    border: "border-[#e0e0e0] dark:border-[#2a2a2a]",
+    color: "text-foreground",
+    bg: "bg-secondary",
+    border: "border-border",
     authType: "oauth" as const,
   },
   {
@@ -71,14 +71,14 @@ const PROVIDERS = [
     name: "Google Antigravity",
     description: "Access Claude, Gemini and more via Google Antigravity platform",
     icon: Globe2,
-    color: "text-[#333] dark:text-[#ccc]",
-    bg: "bg-[#f5f5f5] dark:bg-[#141414]",
-    border: "border-[#e0e0e0] dark:border-[#2a2a2a]",
+    color: "text-foreground",
+    bg: "bg-secondary",
+    border: "border-border",
     authType: "oauth" as const,
   },
 ];
 
-// ── Main component ───────────────────────────────────────────
+// â”€â”€ Main component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function applyTheme(t: string) {
   if (t === "dark" || (t === "auto" && window.matchMedia("(prefers-color-scheme: dark)").matches)) {
@@ -112,6 +112,22 @@ export default function SettingsPage() {
     setTimeout(() => setSaved(false), 2000);
   };
 
+  const settingsTabListRef = React.useRef<HTMLElement>(null);
+
+  const handleSettingsTabKeyDown = (e: React.KeyboardEvent<HTMLElement>) => {
+    const tablist = settingsTabListRef.current;
+    if (!tablist) return;
+    const tabEls = Array.from(tablist.querySelectorAll<HTMLElement>("[role='tab']"));
+    if (tabEls.length === 0) return;
+    const currentIndex = tabEls.findIndex((t) => t === document.activeElement);
+    if (currentIndex < 0) return;
+    const focusAndActivate = (i: number) => { tabEls[i]?.focus(); tabEls[i]?.click(); };
+    if (e.key === "ArrowDown") { e.preventDefault(); focusAndActivate((currentIndex + 1) % tabEls.length); }
+    else if (e.key === "ArrowUp") { e.preventDefault(); focusAndActivate((currentIndex - 1 + tabEls.length) % tabEls.length); }
+    else if (e.key === "Home") { e.preventDefault(); focusAndActivate(0); }
+    else if (e.key === "End") { e.preventDefault(); focusAndActivate(tabEls.length - 1); }
+  };
+
   const tabs = [
     { id: "ai-providers", label: "AI Providers", icon: Cpu },
     { id: "appearance", label: "Appearance", icon: Palette },
@@ -120,23 +136,27 @@ export default function SettingsPage() {
 
   return (
     <div className="p-8 max-w-[900px] mx-auto">
-      <h1 className="text-[28px] font-bold tracking-tight mb-1 dark:text-white">Settings</h1>
-      <p className="text-[#666] dark:text-[#888] text-[15px] mb-8">Manage your AI providers and app preferences.</p>
+      <h1 className="text-[28px] font-bold tracking-tight mb-1 text-foreground">Settings</h1>
+      <p className="text-muted-foreground text-[15px] mb-8">Manage your AI providers and app preferences.</p>
 
       <div className="flex gap-8">
         {/* Settings Sidebar */}
         <div className="w-[200px] shrink-0">
-          <nav className="flex flex-col gap-1">
+          <nav ref={settingsTabListRef} className="flex flex-col gap-1" role="tablist" aria-label="Settings sections" aria-orientation="vertical" onKeyDown={handleSettingsTabKeyDown}>
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-colors text-left ${activeTab === tab.id
-                  ? "bg-white dark:bg-[#1a1a1a] border border-[#e5e5e5] dark:border-[#333] text-black dark:text-white shadow-sm"
-                  : "text-[#666] dark:text-[#888] hover:bg-white/50 dark:hover:bg-white/5 hover:text-black dark:hover:text-white"
+                role="tab"
+                aria-selected={activeTab === tab.id}
+                aria-controls={`${tab.id}-panel`}
+                tabIndex={activeTab === tab.id ? 0 : -1}
+                className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-colors text-left focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-black dark:focus-visible:ring-white ${activeTab === tab.id
+                  ? "bg-background dark:bg-card border border-border text-foreground shadow-sm"
+                  : "text-muted-foreground hover:bg-white/50 dark:hover:bg-white/5 hover:text-foreground"
                   }`}
               >
-                <tab.icon size={16} />
+                <tab.icon size={16} aria-hidden="true" />
                 {tab.label}
               </button>
             ))}
@@ -146,54 +166,59 @@ export default function SettingsPage() {
         {/* Settings Content */}
         <div className="flex-1">
           {/* AI Providers Tab */}
-          {activeTab === "ai-providers" && <AIProvidersTab />}
+          {activeTab === "ai-providers" && <div role="tabpanel" id="ai-providers-panel" aria-labelledby="ai-providers-tab"><AIProvidersTab /></div>}
 
           {/* Appearance Tab */}
           {activeTab === "appearance" && (
-            <div className="bg-white dark:bg-[#111] rounded-2xl border border-[#e5e5e5] dark:border-[#222] p-6">
-              <h2 className="text-[16px] font-semibold mb-6 dark:text-white">Appearance</h2>
+            <div className="bg-card rounded-2xl border border-border p-6" role="tabpanel" id="appearance-panel">
+              <h2 className="text-[16px] font-semibold mb-6 text-foreground">Appearance</h2>
               <div>
-                <label className="block text-[13px] font-medium mb-3 dark:text-[#ccc]">Theme</label>
-                <div className="grid grid-cols-3 gap-3">
-                  {[
-                    { id: "light", label: "Light", preview: "bg-white border-[#e5e5e5]" },
-                    { id: "dark", label: "Dark", preview: "bg-[#0a0a0a] border-[#333]" },
-                    { id: "auto", label: "System", preview: "bg-gradient-to-r from-white to-[#0a0a0a] border-[#e5e5e5]" },
-                  ].map((t) => (
-                    <button
-                      key={t.id}
-                      onClick={() => handleThemeChange(t.id)}
-                      className={`p-4 rounded-xl border-2 text-center transition-all ${theme === t.id ? "border-black dark:border-white" : "border-[#e5e5e5] dark:border-[#333] hover:border-[#ccc]"
-                        }`}
-                    >
-                      <div className={`w-full h-16 rounded-lg border mb-2 ${t.preview}`} />
-                      <p className="text-[13px] font-medium dark:text-[#ccc]">{t.label}</p>
-                    </button>
-                  ))}
-                </div>
+                <fieldset>
+                  <legend className="block text-[13px] font-medium mb-3 dark:text-muted-foreground/70">Theme</legend>
+                  <div className="grid grid-cols-3 gap-3" role="radiogroup" aria-label="Theme selection">
+                    {[
+                      { id: "light", label: "Light", preview: "bg-background border-border" },
+                      { id: "dark", label: "Dark", preview: "bg-card border-border" },
+                      { id: "auto", label: "System", preview: "bg-gradient-to-r from-background to-card border-border" },
+                    ].map((t) => (
+                      <button
+                        key={t.id}
+                        onClick={() => handleThemeChange(t.id)}
+                        role="radio"
+                        aria-checked={theme === t.id}
+                        aria-label={`${t.label} theme`}
+                        className={`p-4 rounded-xl border-2 text-center transition-all focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-black dark:focus-visible:ring-white ${theme === t.id ? "border-primary" : "border-border hover:border-border/80"
+                          }`}
+                      >
+                        <div className={`w-full h-16 rounded-lg border mb-2 ${t.preview}`} aria-hidden="true" />
+                        <p className="text-[13px] font-medium dark:text-muted-foreground/70">{t.label}</p>
+                      </button>
+                    ))}
+                  </div>
+                </fieldset>
               </div>
             </div>
           )}
 
           {/* Privacy Tab */}
           {activeTab === "privacy" && (
-            <div className="space-y-4">
-              <div className="bg-white dark:bg-[#111] rounded-2xl border border-[#e5e5e5] dark:border-[#222] p-6">
-                <h2 className="text-[16px] font-semibold mb-2 dark:text-white">Data Storage</h2>
-                <p className="text-[13px] text-[#999] mb-4">
+            <div className="space-y-4" role="tabpanel" id="privacy-panel">
+              <div className="bg-card rounded-2xl border border-border p-6">
+                <h2 className="text-[16px] font-semibold mb-2 text-foreground">Data Storage</h2>
+                <p className="text-[13px] text-muted-foreground/80 mb-4">
                   All your data is stored locally on your computer in %APPDATA%/.YesLearn/
                 </p>
                 <div className="flex flex-col gap-3">
-                  <div className="flex items-center justify-between py-3 px-4 rounded-xl bg-[#f8f8f8] dark:bg-[#141414]">
+                  <div className="flex items-center justify-between py-3 px-4 rounded-xl bg-secondary">
                     <div>
-                      <p className="text-[14px] font-medium dark:text-white">Database</p>
-                      <p className="text-[12px] text-[#999]">SQLite database with all your spaces and content</p>
+                      <p className="text-[14px] font-medium text-foreground">Database</p>
+                      <p className="text-[12px] text-muted-foreground/80">SQLite database with all your spaces and content</p>
                     </div>
                   </div>
-                  <div className="flex items-center justify-between py-3 px-4 rounded-xl bg-[#f8f8f8] dark:bg-[#141414]">
+                  <div className="flex items-center justify-between py-3 px-4 rounded-xl bg-secondary">
                     <div>
-                      <p className="text-[14px] font-medium dark:text-white">Auth Credentials</p>
-                      <p className="text-[12px] text-[#999]">AI provider tokens stored locally with restricted permissions</p>
+                      <p className="text-[14px] font-medium text-foreground">Auth Credentials</p>
+                      <p className="text-[12px] text-muted-foreground/80">AI provider tokens stored locally with restricted permissions</p>
                     </div>
                   </div>
                 </div>
@@ -206,7 +231,7 @@ export default function SettingsPage() {
   );
 }
 
-// ── AI Providers Tab ─────────────────────────────────────────
+// â”€â”€ AI Providers Tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function AIProvidersTab() {
   const [statuses, setStatuses] = useState<Record<string, ProviderStatus>>({});
@@ -233,9 +258,9 @@ function AIProvidersTab() {
     return (
       <div className="space-y-4">
         {[1, 2, 3].map((i) => (
-          <div key={i} className="bg-white dark:bg-[#111] rounded-2xl border border-[#e5e5e5] dark:border-[#222] p-6 animate-pulse">
-            <div className="h-5 bg-[#f1f1f1] dark:bg-[#222] rounded w-40 mb-2" />
-            <div className="h-4 bg-[#f1f1f1] dark:bg-[#222] rounded w-64" />
+          <div key={i} className="bg-card rounded-2xl border border-border p-6 animate-pulse">
+            <div className="h-5 bg-secondary rounded w-40 mb-2" />
+            <div className="h-4 bg-secondary rounded w-64" />
           </div>
         ))}
       </div>
@@ -245,8 +270,8 @@ function AIProvidersTab() {
   return (
     <div className="space-y-4">
       <div className="mb-2">
-        <h2 className="text-[16px] font-semibold dark:text-white">AI Providers</h2>
-        <p className="text-[13px] text-[#999] mt-1">
+        <h2 className="text-[16px] font-semibold text-foreground">AI Providers</h2>
+        <p className="text-[13px] text-muted-foreground/80 mt-1">
           Connect AI providers to enable chat, summaries, and quizzes. Your tokens are stored locally.
         </p>
       </div>
@@ -268,7 +293,7 @@ function AIProvidersTab() {
   );
 }
 
-// ── Model Selector ───────────────────────────────────────────
+// â”€â”€ Model Selector â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface ModelOption {
   id: string;
@@ -323,26 +348,29 @@ function ModelSelector() {
   }, {});
 
   return (
-    <div className="bg-white dark:bg-[#111] rounded-2xl border border-[#e5e5e5] dark:border-[#222] p-6 mt-2">
-      <h3 className="text-[15px] font-semibold mb-1 dark:text-white">Default Model</h3>
-      <p className="text-[13px] text-[#999] mb-4">
+    <div className="bg-card rounded-2xl border border-border p-6 mt-2">
+      <h3 className="text-[15px] font-semibold mb-1 text-foreground">Default Model</h3>
+      <p className="text-[13px] text-muted-foreground/80 mb-4" id="default-model-help">
         Choose the AI model used for chat, summaries, and quizzes.
       </p>
 
       {loadingModels ? (
-        <div className="flex items-center gap-2 text-[13px] text-[#999]">
-          <Loader2 size={14} className="animate-spin" /> Loading models...
+        <div className="flex items-center gap-2 text-[13px] text-muted-foreground/80" role="status">
+          <Loader2 size={14} className="animate-spin" aria-hidden="true" /> Loading models...
         </div>
       ) : models.length === 0 ? (
-        <p className="text-[13px] text-[#999]">
+        <p className="text-[13px] text-muted-foreground/80">
           Connect a provider above to see available models.
         </p>
       ) : (
         <div className="flex items-center gap-3">
+          <label htmlFor="default-model-select" className="sr-only">Default AI model</label>
           <select
+            id="default-model-select"
             value={selectedModel}
             onChange={(e) => handleModelChange(e.target.value)}
-            className="flex-1 px-4 py-3 rounded-xl border border-[#e5e5e5] dark:border-[#333] bg-white dark:bg-[#141414] dark:text-white text-[14px] focus:outline-none focus:ring-2 focus:ring-black/10 dark:focus:ring-white/10"
+            aria-describedby="default-model-help"
+            className="flex-1 px-4 py-3 rounded-xl border border-border bg-background dark:bg-card text-foreground text-[14px] focus:outline-none focus:ring-2 focus:ring-black/10 dark:focus:ring-white/10 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-black dark:focus-visible:ring-white"
           >
             {Object.entries(groupedModels).map(([groupName, groupModels]) => (
               <optgroup key={groupName} label={groupName}>
@@ -354,14 +382,15 @@ function ModelSelector() {
               </optgroup>
             ))}
           </select>
-          {saving && <Loader2 size={14} className="animate-spin text-[#999]" />}
+          {saving && <Loader2 size={14} className="animate-spin text-muted-foreground/80" aria-label="Saving selection" />}
+          <span className="sr-only" role="status" aria-live="polite">{saving ? "Saving default model" : ""}</span>
         </div>
       )}
     </div>
   );
 }
 
-// ── Provider Card ────────────────────────────────────────────
+// â”€â”€ Provider Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function ProviderCard({
   provider,
@@ -396,7 +425,7 @@ function ProviderCard({
   };
 
   return (
-    <div className={`bg-white dark:bg-[#111] rounded-2xl border ${isConnected ? "border-green-200 dark:border-green-900" : "border-[#e5e5e5] dark:border-[#222]"} p-6 transition-all`}>
+    <div className={`bg-card rounded-2xl border ${isConnected ? "border-green-200 dark:border-green-900" : "border-border"} p-6 transition-all`}>
       <div className="flex items-start justify-between">
         <div className="flex items-start gap-4">
           <div className={`w-10 h-10 rounded-xl ${provider.bg} flex items-center justify-center shrink-0`}>
@@ -404,23 +433,23 @@ function ProviderCard({
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="text-[15px] font-semibold dark:text-white">{provider.name}</h3>
+              <h3 className="text-[15px] font-semibold text-foreground">{provider.name}</h3>
               {isConnected ? (
                 <span className="flex items-center gap-1 text-[11px] font-medium text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-2 py-0.5 rounded-full">
                   <CheckCircle2 size={10} /> Connected
                 </span>
               ) : (
-                <span className="flex items-center gap-1 text-[11px] font-medium text-[#999] bg-[#f5f5f5] dark:bg-[#1a1a1a] px-2 py-0.5 rounded-full">
+                <span className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground/80 bg-secondary px-2 py-0.5 rounded-full">
                   <XCircle size={10} /> Not connected
                 </span>
               )}
             </div>
-            <p className="text-[13px] text-[#666] dark:text-[#888] mt-0.5">{provider.description}</p>
+            <p className="text-[13px] text-muted-foreground mt-0.5">{provider.description}</p>
             {isConnected && status?.email && (
-              <p className="text-[12px] text-[#999] mt-1.5">
-                Signed in as <span className="font-medium text-[#666] dark:text-[#aaa]">{status.email}</span>
+              <p className="text-[12px] text-muted-foreground/80 mt-1.5">
+                Signed in as <span className="font-medium text-muted-foreground">{status.email}</span>
                 {status.updatedAt && (
-                  <> · Last refreshed {new Date(status.updatedAt).toLocaleDateString()}</>
+                  <> Â· Last refreshed {new Date(status.updatedAt).toLocaleDateString()}</>
                 )}
               </p>
             )}
@@ -432,9 +461,11 @@ function ProviderCard({
             <button
               onClick={handleDisconnect}
               disabled={disconnecting}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-red-200 dark:border-red-900 text-[12px] font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50"
+              aria-disabled={disconnecting}
+              aria-label={`Disconnect from ${provider.name}`}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-red-200 dark:border-red-900 text-[12px] font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-red-500"
             >
-              {disconnecting ? <Loader2 size={12} className="animate-spin" /> : <Unplug size={12} />}
+              {disconnecting ? <Loader2 size={12} className="animate-spin" aria-hidden="true" /> : <Unplug size={12} aria-hidden="true" />}
               Disconnect
             </button>
           ) : (
@@ -469,7 +500,7 @@ function ProviderCard({
   );
 }
 
-// ── Connect Button ───────────────────────────────────────────
+// â”€â”€ Connect Button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function ConnectButton({
   provider,
@@ -492,7 +523,7 @@ function ConnectButton({
       if (provider.authType === "device-code") {
         setActiveFlow(provider.id);
       } else {
-        // OAuth flow — get auth URL and open it
+        // OAuth flow â€” get auth URL and open it
         const res = await fetch("/api/auth/google/login", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -517,15 +548,17 @@ function ConnectButton({
     <button
       onClick={handleConnect}
       disabled={loading || !!activeFlow}
-      className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-black dark:bg-white text-white dark:text-black text-[12px] font-medium hover:opacity-90 transition-all disabled:opacity-50"
+      aria-disabled={loading || !!activeFlow}
+      aria-label={`Connect to ${provider.name}`}
+      className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-[12px] font-medium hover:opacity-90 transition-all disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-black dark:focus-visible:ring-white"
     >
-      {loading ? <Loader2 size={12} className="animate-spin" /> : <ExternalLink size={12} />}
+      {loading ? <Loader2 size={12} className="animate-spin" aria-hidden="true" /> : <ExternalLink size={12} aria-hidden="true" />}
       Connect
     </button>
   );
 }
 
-// ── Poll OAuth completion ────────────────────────────────────
+// â”€â”€ Poll OAuth completion â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function pollOAuthCompletion(
   providerId: string,
@@ -556,7 +589,7 @@ function pollOAuthCompletion(
   }, 2000);
 }
 
-// ── GitHub Device Code Flow ──────────────────────────────────
+// â”€â”€ GitHub Device Code Flow â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function DeviceCodeFlow({
   onComplete,
@@ -626,7 +659,7 @@ function DeviceCodeFlow({
             setError(data.status === "expired" ? "Code expired" : "Access denied");
             setStep("error");
             break;
-          // "pending" — continue
+          // "pending" â€” continue
         }
       } catch {
         // Continue polling on network error
@@ -642,9 +675,9 @@ function DeviceCodeFlow({
   };
 
   return (
-    <div className="mt-5 pt-5 border-t border-[#f0f0f0] dark:border-[#222]">
+    <div className="mt-5 pt-5 border-t border-border">
       {step === "loading" && (
-        <div className="flex items-center gap-3 text-[13px] text-[#666] dark:text-[#888]">
+        <div className="flex items-center gap-3 text-[13px] text-muted-foreground">
           <Loader2 size={16} className="animate-spin" />
           Requesting login code from GitHub...
         </div>
@@ -653,33 +686,34 @@ function DeviceCodeFlow({
       {step === "show-code" && deviceData && (
         <div className="space-y-4">
           <div className="flex items-start gap-3">
-            <div className="w-7 h-7 rounded-lg bg-[#f0f0f0] dark:bg-[#1a1a1a] flex items-center justify-center text-[13px] font-bold shrink-0 dark:text-white">1</div>
+            <div className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center text-[13px] font-bold shrink-0 text-foreground">1</div>
             <div>
-              <p className="text-[14px] font-medium dark:text-white">Copy this code:</p>
+              <p className="text-[14px] font-medium text-foreground">Copy this code:</p>
               <div className="flex items-center gap-2 mt-2">
-                <code className="text-[20px] font-mono font-bold tracking-[0.2em] bg-[#f6f8fa] dark:bg-[#141414] border border-[#d0d7de] dark:border-[#333] rounded-xl px-5 py-2.5 dark:text-white">
+                <code className="text-[20px] font-mono font-bold tracking-[0.2em] bg-secondary border border-border rounded-xl px-5 py-2.5 text-foreground">
                   {deviceData.userCode}
                 </code>
                 <button
                   onClick={copyCode}
-                  className="p-2 rounded-lg hover:bg-[#f0f0f0] dark:hover:bg-[#1a1a1a] transition-colors"
+                  aria-label={copied ? "Code copied" : "Copy code to clipboard"}
+                  className="p-2 rounded-lg hover:bg-secondary transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-black dark:focus-visible:ring-white"
                   title="Copy code"
                 >
-                  {copied ? <Check size={16} className="text-green-500" /> : <Copy size={16} className="text-[#999]" />}
+                  {copied ? <Check size={16} className="text-green-500" aria-hidden="true" /> : <Copy size={16} className="text-muted-foreground/80" aria-hidden="true" />}
                 </button>
               </div>
             </div>
           </div>
 
           <div className="flex items-start gap-3">
-            <div className="w-7 h-7 rounded-lg bg-[#f0f0f0] dark:bg-[#1a1a1a] flex items-center justify-center text-[13px] font-bold shrink-0 dark:text-white">2</div>
+            <div className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center text-[13px] font-bold shrink-0 text-foreground">2</div>
             <div>
-              <p className="text-[14px] font-medium dark:text-white">Paste it on GitHub:</p>
+              <p className="text-[14px] font-medium text-foreground">Paste it on GitHub:</p>
               <a
                 href={deviceData.verificationUri}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 mt-2 px-4 py-2 rounded-xl bg-[#f6f8fa] dark:bg-[#141414] border border-[#d0d7de] dark:border-[#333] text-[13px] font-medium text-[#333] dark:text-[#ccc] hover:bg-[#f0f0f0] dark:hover:bg-[#1a1a1a] transition-colors"
+                className="inline-flex items-center gap-1.5 mt-2 px-4 py-2 rounded-xl bg-secondary border border-border text-[13px] font-medium text-foreground hover:bg-secondary transition-colors"
               >
                 <ExternalLink size={12} />
                 {deviceData.verificationUri}
@@ -690,13 +724,15 @@ function DeviceCodeFlow({
           <div className="flex items-center gap-3 mt-2">
             <button
               onClick={startPolling}
-              className="px-5 py-2.5 rounded-xl bg-black dark:bg-white text-white dark:text-black text-[13px] font-medium hover:opacity-90 transition-all"
+              aria-label="Confirm code entry and start polling"
+              className="px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-[13px] font-medium hover:opacity-90 transition-all focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-black dark:focus-visible:ring-white"
             >
               I&apos;ve entered the code
             </button>
             <button
               onClick={onCancel}
-              className="px-4 py-2.5 rounded-xl border border-[#e5e5e5] dark:border-[#333] text-[13px] font-medium text-[#666] dark:text-[#888] hover:bg-[#f8f8f8] dark:hover:bg-[#1a1a1a] transition-colors"
+              aria-label="Cancel authentication"
+              className="px-4 py-2.5 rounded-xl border border-border text-[13px] font-medium text-muted-foreground hover:bg-secondary transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-black dark:focus-visible:ring-white"
             >
               Cancel
             </button>
@@ -705,10 +741,14 @@ function DeviceCodeFlow({
       )}
 
       {step === "polling" && (
-        <div className="flex items-center gap-3 text-[13px] text-[#666] dark:text-[#888]">
-          <Loader2 size={16} className="animate-spin" />
+        <div className="flex items-center gap-3 text-[13px] text-muted-foreground">
+          <Loader2 size={16} className="animate-spin" aria-hidden="true" />
           Waiting for authorization... Complete the GitHub login in your browser.
-          <button onClick={onCancel} className="ml-auto text-[12px] text-[#999] hover:text-[#666] dark:hover:text-[#ccc]">
+          <button 
+            onClick={onCancel} 
+            aria-label="Cancel authentication"
+            className="ml-auto text-[12px] text-muted-foreground/80 hover:text-muted-foreground focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-black dark:focus-visible:ring-white rounded"
+          >
             Cancel
           </button>
         </div>
@@ -717,30 +757,37 @@ function DeviceCodeFlow({
       {step === "success" && (
         <div className="flex items-center gap-3 text-[13px] text-green-600 font-medium">
           <CheckCircle2 size={16} />
-          Connected{email ? ` as ${email}` : ""}! 🎉
+          Connected{email ? ` as ${email}` : ""}! ðŸŽ‰
         </div>
       )}
 
       {step === "error" && (
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 text-[13px] text-red-500">
-            <AlertCircle size={16} />
+          <div className="flex items-center gap-2 text-[13px] text-red-500" role="alert">
+            <AlertCircle size={16} aria-hidden="true" />
             {error}
           </div>
           <button
             onClick={() => { setStep("loading"); startDeviceFlow(); }}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium text-[#666] dark:text-[#888] hover:bg-[#f0f0f0] dark:hover:bg-[#1a1a1a]"
+            aria-label="Retry authentication"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium text-muted-foreground hover:bg-secondary focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-black dark:focus-visible:ring-white"
           >
-            <RefreshCcw size={12} /> Retry
+            <RefreshCcw size={12} aria-hidden="true" /> Retry
           </button>
-          <button onClick={onCancel} className="text-[12px] text-[#999] hover:text-[#666] dark:hover:text-[#ccc]">Cancel</button>
+          <button 
+            onClick={onCancel} 
+            aria-label="Cancel authentication"
+            className="text-[12px] text-muted-foreground/80 hover:text-muted-foreground focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-black dark:focus-visible:ring-white rounded"
+          >
+            Cancel
+          </button>
         </div>
       )}
     </div>
   );
 }
 
-// ── OAuth Waiting indicator ──────────────────────────────────
+// â”€â”€ OAuth Waiting indicator â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function OAuthWaiting({
   providerName,
@@ -750,14 +797,19 @@ function OAuthWaiting({
   onCancel: () => void;
 }) {
   return (
-    <div className="mt-5 pt-5 border-t border-[#f0f0f0] dark:border-[#222]">
-      <div className="flex items-center gap-3 text-[13px] text-[#666] dark:text-[#888]">
-        <Loader2 size={16} className="animate-spin" />
+    <div className="mt-5 pt-5 border-t border-border">
+      <div className="flex items-center gap-3 text-[13px] text-muted-foreground" role="status">
+        <Loader2 size={16} className="animate-spin" aria-hidden="true" />
         Waiting for {providerName} authorization... Complete the login in your browser.
-        <button onClick={onCancel} className="ml-auto text-[12px] text-[#999] hover:text-[#666] dark:hover:text-[#ccc]">
+        <button 
+          onClick={onCancel} 
+          aria-label="Cancel authentication"
+          className="ml-auto text-[12px] text-muted-foreground/80 hover:text-muted-foreground focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-black dark:focus-visible:ring-white rounded"
+        >
           Cancel
         </button>
       </div>
     </div>
   );
 }
+

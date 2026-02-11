@@ -53,7 +53,7 @@ export default function ContactPage() {
           ) : (
             <form onSubmit={handleSubmit} className="bg-white dark:bg-[#111] rounded-2xl border border-[#e5e5e5] dark:border-[#2a2a2a] p-8">
               {formError && (
-                <div className="mb-4 p-3 rounded-xl bg-red-50 text-red-600 text-[13px]" role="alert" aria-live="polite">
+                <div className="mb-4 p-3 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-[13px] flex items-center gap-2" role="alert" aria-live="polite">
                   {formError}
                 </div>
               )}

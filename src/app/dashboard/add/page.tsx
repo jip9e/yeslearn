@@ -1,5 +1,5 @@
-"use client";
-import React, { useState, useRef, useEffect } from "react";
+﻿"use client";
+import React, { useState, useRef, useEffect, FormEvent } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
@@ -26,10 +26,10 @@ interface ContentType {
 }
 
 const CONTENT_TYPES: ContentType[] = [
-  { id: "youtube", label: "YouTube Video", icon: Youtube, color: "text-gray-700 dark:text-gray-300", bg: "bg-gray-100 dark:bg-gray-800", description: "Paste a YouTube URL to extract the transcript" },
-  { id: "pdf", label: "PDF / Document", icon: FileText, color: "text-gray-700 dark:text-gray-300", bg: "bg-gray-100 dark:bg-gray-800", description: "Upload a PDF file to extract text content" },
-  { id: "website", label: "Website URL", icon: Globe, color: "text-gray-700 dark:text-gray-300", bg: "bg-gray-100 dark:bg-gray-800", description: "Paste a website URL to extract its content" },
-  { id: "text", label: "Text / Notes", icon: FileText, color: "text-gray-700 dark:text-gray-300", bg: "bg-gray-100 dark:bg-gray-800", description: "Paste or type text content directly" },
+  { id: "youtube", label: "YouTube Video", icon: Youtube, color: "text-muted-foreground", bg: "bg-secondary", description: "Paste a YouTube URL to extract the transcript" },
+  { id: "pdf", label: "PDF / Document", icon: FileText, color: "text-muted-foreground", bg: "bg-secondary", description: "Upload a PDF file to extract text content" },
+  { id: "website", label: "Website URL", icon: Globe, color: "text-muted-foreground", bg: "bg-secondary", description: "Paste a website URL to extract its content" },
+  { id: "text", label: "Text / Notes", icon: FileText, color: "text-muted-foreground", bg: "bg-secondary", description: "Paste or type text content directly" },
 ];
 
 interface Space {
@@ -41,8 +41,10 @@ interface Space {
 export default function AddContentPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const initialType = searchParams.get("type") || "youtube";
+  const requestedType = searchParams.get("type") || "youtube";
   const preselectedSpaceId = searchParams.get("spaceId") || "";
+  const allowedTypeIds = new Set(CONTENT_TYPES.map((type) => type.id));
+  const initialType = allowedTypeIds.has(requestedType) ? requestedType : "youtube";
 
   const [selectedType, setSelectedType] = useState(initialType);
   const [spaces, setSpaces] = useState<Space[]>([]);
@@ -56,6 +58,10 @@ export default function AddContentPage() {
   const [success, setSuccess] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const clearError = () => {
+    if (error) setError("");
+  };
+
   // Fetch spaces for the selector
   useEffect(() => {
     fetch("/api/spaces")
@@ -68,7 +74,8 @@ export default function AddContentPage() {
       });
   }, []);
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
     if (!selectedSpaceId) {
       setError("Please select or create a space first.");
       return;
@@ -149,47 +156,55 @@ export default function AddContentPage() {
   if (success) {
     return (
       <div className="p-4 sm:p-6 md:p-8 max-w-[640px] mx-auto flex flex-col items-center justify-center min-h-[50vh] gap-4 pl-14 md:pl-8">
-        <div className="w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
-          <Check size={32} className="text-gray-900 dark:text-white" />
+        <div className="w-16 h-16 rounded-full bg-secondary flex items-center justify-center">
+          <Check size={32} className="text-foreground" />
         </div>
         <h2 className="text-[20px] font-semibold">Content Added!</h2>
-        <p className="text-[14px] text-[#999]">Redirecting to your space...</p>
+        <p className="text-[14px] text-muted-foreground/80">Redirecting to your space...</p>
       </div>
     );
   }
 
   return (
     <div className="p-4 sm:p-6 md:p-8 max-w-[640px] mx-auto pl-14 md:pl-8">
-      <Link href="/dashboard" className="inline-flex items-center gap-2 text-[13px] text-[#999] hover:text-black dark:hover:text-white mb-6">
+      <Link href="/dashboard" className="inline-flex items-center gap-2 text-[13px] text-muted-foreground hover:text-foreground mb-6">
         <ArrowLeft size={14} /> Back to Dashboard
       </Link>
 
-      <h1 className="text-[22px] sm:text-[28px] font-bold tracking-tight mb-1 dark:text-white">Add Content</h1>
-      <p className="text-[#666] dark:text-[#999] text-[14px] sm:text-[15px] mb-6 sm:mb-8">Add learning materials to your space.</p>
+      <h1 className="text-[22px] sm:text-[28px] font-bold tracking-tight mb-1 text-foreground">Add Content</h1>
+      <p className="text-muted-foreground text-[14px] sm:text-[15px] mb-6 sm:mb-8">Add learning materials to your space.</p>
 
       {error && (
-        <div className="mb-4 p-3 rounded-xl bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-[13px] flex items-center gap-2">
+        <div className="mb-4 p-3 rounded-xl bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-[13px] flex items-center gap-2" role="alert" aria-live="polite">
           <AlertCircle size={14} />
           {error}
         </div>
       )}
 
-      <div className="flex flex-col gap-6">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-6">
         {/* Space Selector */}
         <div>
-          <label className="block text-[13px] font-medium mb-2 dark:text-white">Space</label>
+          <label htmlFor="space-select" className="block text-[13px] font-medium mb-2 text-foreground">
+            Space <span className="text-red-600" aria-label="required">*</span>
+          </label>
           {spaces.length === 0 ? (
-            <div className="p-4 rounded-xl border border-[#e5e5e5] dark:border-[#333] bg-[#fafafa] dark:bg-[#1a1a1a] text-center">
-              <p className="text-[13px] text-[#999] dark:text-[#777] mb-2">No spaces yet</p>
-              <Link href="/space/new" className="text-[13px] text-black dark:text-white font-medium hover:opacity-70">
+            <div className="p-4 rounded-xl border border-border bg-card text-center" role="alert">
+              <p className="text-[13px] text-muted-foreground/80 mb-2">No spaces yet</p>
+              <Link href="/space/new" className="text-[13px] text-foreground font-medium hover:opacity-70">
                 + Create a space first
               </Link>
             </div>
           ) : (
             <select
+              id="space-select"
               value={selectedSpaceId}
-              onChange={(e) => setSelectedSpaceId(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border border-[#e5e5e5] dark:border-[#333] bg-white dark:bg-[#1a1a1a] dark:text-white text-[14px] focus:outline-none focus:ring-2 focus:ring-black/10 dark:focus:ring-white/20"
+              onChange={(e) => {
+                setSelectedSpaceId(e.target.value);
+                clearError();
+              }}
+              required
+              aria-required="true"
+              className="w-full px-4 py-3 rounded-xl border border-border bg-background dark:bg-card text-foreground text-[14px] focus:outline-none focus:ring-2 focus:ring-black/10 dark:focus:ring-white/20 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-black dark:focus-visible:ring-white"
             >
               {spaces.map((s) => (
                 <option key={s.id} value={s.id}>
@@ -202,95 +217,143 @@ export default function AddContentPage() {
 
         {/* Content Type Selector */}
         <div>
-          <label className="block text-[13px] font-medium mb-2 dark:text-white">Content Type</label>
-          <div className="grid grid-cols-2 gap-3">
-            {CONTENT_TYPES.map((type) => (
-              <button
-                key={type.id}
-                onClick={() => setSelectedType(type.id)}
-                className={`p-4 rounded-xl border-2 text-left transition-all ${selectedType === type.id
-                    ? "border-black dark:border-white bg-[#fafafa] dark:bg-[#1a1a1a]"
-                    : "border-[#e5e5e5] dark:border-[#333] hover:border-[#ccc] dark:hover:border-[#555]"
-                  }`}
-              >
-                <div className={`w-8 h-8 rounded-lg ${type.bg} flex items-center justify-center mb-2`}>
-                  <type.icon size={16} className={type.color} />
-                </div>
-                <p className="text-[13px] font-medium dark:text-white">{type.label}</p>
-                <p className="text-[11px] text-[#999] dark:text-[#777] mt-0.5">{type.description}</p>
-              </button>
-            ))}
-          </div>
+          <fieldset>
+            <legend className="block text-[13px] font-medium mb-2 text-foreground">
+              Content Type <span className="text-red-600" aria-label="required">*</span>
+            </legend>
+            <div className="grid grid-cols-2 gap-3" role="radiogroup" aria-label="Content type selection">
+              {CONTENT_TYPES.map((type) => (
+                <button
+                  type="button"
+                  key={type.id}
+                  onClick={() => {
+                    setSelectedType(type.id);
+                    clearError();
+                  }}
+                  role="radio"
+                  aria-checked={selectedType === type.id}
+                  aria-label={`${type.label}: ${type.description}`}
+                  className={`p-4 rounded-xl border-2 text-left transition-all focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-black dark:focus-visible:ring-white ${selectedType === type.id
+                      ? "border-primary bg-card"
+                      : "border-border hover:border-border/80"
+                    }`}
+                >
+                  <div className={`w-8 h-8 rounded-lg ${type.bg} flex items-center justify-center mb-2`}>
+                    <type.icon size={16} className={type.color} aria-hidden="true" />
+                  </div>
+                  <p className="text-[13px] font-medium text-foreground">{type.label}</p>
+                  <p className="text-[11px] text-muted-foreground/80 mt-0.5">{type.description}</p>
+                </button>
+              ))}
+            </div>
+          </fieldset>
         </div>
 
         {/* Name */}
         <div>
-          <label className="block text-[13px] font-medium mb-2 dark:text-white">
-            Name <span className="text-[#ccc] dark:text-[#555]">(auto-generated if empty)</span>
+          <label htmlFor="content-name" className="block text-[13px] font-medium mb-2 text-foreground">
+            Name <span className="text-muted-foreground/70">(auto-generated if empty)</span>
           </label>
           <input
+            id="content-name"
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder={getAutoName()}
-            className="w-full px-4 py-3 rounded-xl border border-[#e5e5e5] dark:border-[#333] bg-white dark:bg-[#1a1a1a] dark:text-white text-[14px] focus:outline-none focus:ring-2 focus:ring-black/10 dark:focus:ring-white/20 placeholder:text-[#ccc] dark:placeholder:text-[#555]"
+            aria-describedby="name-help"
+            className="w-full px-4 py-3 rounded-xl border border-border bg-background dark:bg-card text-foreground text-[14px] focus:outline-none focus:ring-2 focus:ring-black/10 dark:focus:ring-white/20 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-black dark:focus-visible:ring-white placeholder:text-muted-foreground/70"
           />
+          <p id="name-help" className="sr-only">Leave empty to auto-generate name based on content</p>
         </div>
 
         {/* YouTube / Website URL Input */}
         {(selectedType === "youtube" || selectedType === "website") && (
           <div>
-            <label className="block text-[13px] font-medium mb-2 dark:text-white">
-              {selectedType === "youtube" ? "YouTube URL" : "Website URL"}
+            <label htmlFor="content-url" className="block text-[13px] font-medium mb-2 text-foreground">
+              {selectedType === "youtube" ? "YouTube URL" : "Website URL"} <span className="text-red-600" aria-label="required">*</span>
             </label>
             <input
+              id="content-url"
               type="url"
               value={url}
-              onChange={(e) => setUrl(e.target.value)}
+              onChange={(e) => {
+                setUrl(e.target.value);
+                clearError();
+              }}
+              required
+              aria-required="true"
+              aria-describedby={error && !url.trim() ? "url-error" : undefined}
+              aria-invalid={error && !url.trim() ? "true" : "false"}
               placeholder={
                 selectedType === "youtube"
                   ? "https://www.youtube.com/watch?v=..."
                   : "https://example.com/article"
               }
-              className="w-full px-4 py-3 rounded-xl border border-[#e5e5e5] dark:border-[#333] bg-white dark:bg-[#1a1a1a] dark:text-white text-[14px] focus:outline-none focus:ring-2 focus:ring-black/10 dark:focus:ring-white/20 placeholder:text-[#ccc] dark:placeholder:text-[#555]"
+              className="w-full px-4 py-3 rounded-xl border border-border bg-background dark:bg-card text-foreground text-[14px] focus:outline-none focus:ring-2 focus:ring-black/10 dark:focus:ring-white/20 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-black dark:focus-visible:ring-white placeholder:text-muted-foreground/70"
             />
+            {error && !url.trim() && (
+              <p id="url-error" className="text-[12px] text-red-600 dark:text-red-400 mt-1">
+                Please enter a URL
+              </p>
+            )}
           </div>
         )}
 
         {/* PDF Upload */}
         {selectedType === "pdf" && (
           <div>
-            <label className="block text-[13px] font-medium mb-2 dark:text-white">PDF File</label>
+            <label htmlFor="pdf-upload" className="block text-[13px] font-medium mb-2 text-foreground">
+              PDF File <span className="text-red-600" aria-label="required">*</span>
+            </label>
             <input
+              id="pdf-upload"
               type="file"
               ref={fileInputRef}
               accept=".pdf"
-              onChange={(e) => setFile(e.target.files?.[0] || null)}
-              className="hidden"
+              onChange={(e) => {
+                setFile(e.target.files?.[0] || null);
+                clearError();
+              }}
+              required
+              aria-required="true"
+              aria-describedby={error && !file ? "pdf-error" : "pdf-help"}
+              className="sr-only"
             />
             {file ? (
-              <div className="flex items-center gap-3 p-4 rounded-xl border border-[#e5e5e5] dark:border-[#333] bg-white dark:bg-[#1a1a1a]">
-                <FileText size={20} className="text-gray-600 dark:text-gray-400" />
+              <div className="flex items-center gap-3 p-4 rounded-xl border border-border bg-background dark:bg-card">
+                <FileText size={20} className="text-muted-foreground" aria-hidden="true" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-[13px] font-medium truncate dark:text-white">{file.name}</p>
-                  <p className="text-[11px] text-[#999] dark:text-[#777]">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                  <p className="text-[13px] font-medium truncate text-foreground">{file.name}</p>
+                  <p className="text-[11px] text-muted-foreground/80">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
                 </div>
                 <button
-                  onClick={() => setFile(null)}
-                  className="p-1 rounded hover:bg-[#f1f1f1] dark:hover:bg-[#333]"
+                  type="button"
+                  onClick={() => {
+                    setFile(null);
+                    clearError();
+                  }}
+                  aria-label="Remove selected PDF file"
+                  className="p-1 rounded hover:bg-secondary focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-black dark:focus-visible:ring-white"
                 >
-                  <X size={14} className="text-[#999] dark:text-[#777]" />
+                  <X size={14} className="text-muted-foreground/80" aria-hidden="true" />
                 </button>
               </div>
             ) : (
               <button
+                type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="w-full p-8 rounded-xl border-2 border-dashed border-[#e0e0e0] dark:border-[#444] flex flex-col items-center gap-2 hover:border-[#bbb] dark:hover:border-[#666] hover:bg-[#fafafa] dark:hover:bg-[#1a1a1a] transition-all"
+                aria-label="Select a PDF file to upload (max 50MB)"
+                className="w-full p-8 rounded-xl border-2 border-dashed border-border flex flex-col items-center gap-2 hover:border-border/80 hover:bg-secondary transition-all focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-black dark:focus-visible:ring-white"
               >
-                <Upload size={24} className="text-[#ccc] dark:text-[#555]" />
-                <p className="text-[13px] text-[#999] dark:text-[#777]">Click to select a PDF file</p>
-                <p className="text-[11px] text-[#ccc] dark:text-[#555]">Max 50MB</p>
+                <Upload size={24} className="text-muted-foreground/70" aria-hidden="true" />
+                <p className="text-[13px] text-muted-foreground/80">Click to select a PDF file</p>
+                <p className="text-[11px] text-muted-foreground/70" id="pdf-help">Max 50MB</p>
               </button>
+            )}
+            {error && !file && (
+              <p id="pdf-error" className="text-[12px] text-red-600 dark:text-red-400 mt-1">
+                Please select a PDF file
+              </p>
             )}
           </div>
         )}
@@ -298,33 +361,51 @@ export default function AddContentPage() {
         {/* Text Input */}
         {selectedType === "text" && (
           <div>
-            <label className="block text-[13px] font-medium mb-2 dark:text-white">Text Content</label>
+            <label htmlFor="text-content" className="block text-[13px] font-medium mb-2 text-foreground">
+              Text Content <span className="text-red-600" aria-label="required">*</span>
+            </label>
             <textarea
+              id="text-content"
               value={textContent}
-              onChange={(e) => setTextContent(e.target.value)}
+              onChange={(e) => {
+                setTextContent(e.target.value);
+                clearError();
+              }}
               placeholder="Paste or type your notes, text content, etc."
+              required
+              aria-required="true"
+              aria-describedby={error && !textContent.trim() ? "text-error" : undefined}
+              aria-invalid={error && !textContent.trim() ? "true" : "false"}
               rows={8}
-              className="w-full px-4 py-3 rounded-xl border border-[#e5e5e5] dark:border-[#333] bg-white dark:bg-[#1a1a1a] dark:text-white text-[14px] focus:outline-none focus:ring-2 focus:ring-black/10 dark:focus:ring-white/20 resize-none placeholder:text-[#ccc] dark:placeholder:text-[#555]"
+              className="w-full px-4 py-3 rounded-xl border border-border bg-background dark:bg-card text-foreground text-[14px] focus:outline-none focus:ring-2 focus:ring-black/10 dark:focus:ring-white/20 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-black dark:focus-visible:ring-white resize-none placeholder:text-muted-foreground/70"
             />
+            {error && !textContent.trim() && (
+              <p id="text-error" className="text-[12px] text-red-600 dark:text-red-400 mt-1">
+                Please enter some text
+              </p>
+            )}
           </div>
         )}
 
         {/* Submit */}
         <button
-          onClick={handleSubmit}
+          type="submit"
           disabled={submitting || spaces.length === 0}
-          className="w-full py-3 rounded-xl bg-black dark:bg-white text-white dark:text-black text-[14px] font-medium hover:opacity-90 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          aria-disabled={submitting || spaces.length === 0}
+          aria-label={submitting ? "Processing content submission" : "Add content to space"}
+          className="w-full py-3 rounded-xl bg-primary text-primary-foreground text-[14px] font-medium hover:opacity-90 transition-all disabled:opacity-40 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-black dark:focus-visible:ring-white flex items-center justify-center gap-2"
         >
           {submitting ? (
             <>
-              <Loader2 size={16} className="animate-spin" />
+              <Loader2 size={16} className="animate-spin" aria-hidden="true" />
               Processing...
             </>
           ) : (
             "Add Content"
           )}
         </button>
-      </div>
+      </form>
     </div>
   );
 }
+

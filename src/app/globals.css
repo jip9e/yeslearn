@@ -6,32 +6,32 @@
 
 @theme {
   --color-background: #ffffff;
-  --color-foreground: #000000;
+  --color-foreground: #111111;
 
-  --color-card: #f8f8f8;
-  --color-card-foreground: #000000;
+  --color-card: #fafafa;
+  --color-card-foreground: #111111;
 
   --color-popover: #ffffff;
-  --color-popover-foreground: #000000;
+  --color-popover-foreground: #111111;
 
-  --color-primary: #000000;
+  --color-primary: #111111;
   --color-primary-foreground: #ffffff;
 
-  --color-secondary: #f1f1f1;
-  --color-secondary-foreground: #000000;
+  --color-secondary: #f5f5f5;
+  --color-secondary-foreground: #111111;
 
-  --color-muted: #f1f1f1;
-  --color-muted-foreground: #666666;
+  --color-muted: #f5f5f5;
+  --color-muted-foreground: #6b7280;
 
-  --color-accent: #ff6600;
-  --color-accent-foreground: #ffffff;
+  --color-accent: #e5e7eb;
+  --color-accent-foreground: #111111;
 
   --color-destructive: #ef4444;
   --color-destructive-foreground: #fafafa;
 
-  --color-border: #e5e5e5;
-  --color-input: #e5e5e5;
-  --color-ring: #000000;
+  --color-border: #e5e7eb;
+  --color-input: #e5e7eb;
+  --color-ring: #111111;
 
   --color-chart-1: #ff6600;
   --color-chart-2: #2d8659;
@@ -87,30 +87,52 @@
   ::before,
   ::backdrop,
   ::file-selector-button {
-    border-color: #e5e5e5;
+    border-color: var(--border);
   }
 
   :root {
     --background: #ffffff;
-    --foreground: #000000;
-    --card: #f8f8f8;
-    --card-foreground: #000000;
+    --foreground: #111111;
+    --card: #fafafa;
+    --card-foreground: #111111;
     --popover: #ffffff;
-    --popover-foreground: #000000;
-    --primary: #000000;
+    --popover-foreground: #111111;
+    --primary: #111111;
     --primary-foreground: #ffffff;
-    --secondary: #f1f1f1;
-    --secondary-foreground: #000000;
-    --muted: #f1f1f1;
-    --muted-foreground: #666666;
-    --accent: #ff6600;
-    --accent-foreground: #ffffff;
+    --secondary: #f5f5f5;
+    --secondary-foreground: #111111;
+    --muted: #f5f5f5;
+    --muted-foreground: #6b7280;
+    --accent: #e5e7eb;
+    --accent-foreground: #111111;
     --destructive: #ef4444;
     --destructive-foreground: #fafafa;
-    --border: #e5e5e5;
-    --input: #e5e5e5;
-    --ring: #000000;
+    --border: #e5e7eb;
+    --input: #e5e7eb;
+    --ring: #111111;
     --radius: 24px;
+  }
+
+  .dark {
+    --background: #0f0f10;
+    --foreground: #f5f5f5;
+    --card: #171718;
+    --card-foreground: #f5f5f5;
+    --popover: #171718;
+    --popover-foreground: #f5f5f5;
+    --primary: #f5f5f5;
+    --primary-foreground: #111111;
+    --secondary: #222225;
+    --secondary-foreground: #f5f5f5;
+    --muted: #222225;
+    --muted-foreground: #9ca3af;
+    --accent: #2d2d31;
+    --accent-foreground: #f5f5f5;
+    --destructive: #ef4444;
+    --destructive-foreground: #fafafa;
+    --border: #2a2a2e;
+    --input: #2a2a2e;
+    --ring: #f5f5f5;
   }
 
   html {
@@ -125,6 +147,11 @@
     color: var(--foreground);
     font-size: 18px;
     line-height: 1.6;
+  }
+
+  :where(a, button, input, select, textarea, [role="button"], [role="tab"], [role="radio"]):focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
   }
 
   h1 {
@@ -178,12 +205,12 @@
 }
 
 @layer utilities {
-  .text-secondary-gray {
-    color: #666666;
+  .text-muted-foreground {
+    color: var(--muted-foreground);
   }
 
   .bg-card-alt {
-    background-color: #f8f8f8;
+    background-color: var(--card);
   }
 
   .btn-pill {
@@ -286,7 +313,7 @@
   }
 
   .prose-ai li::marker {
-    color: #999;
+    color: #a3a3a3; /* gray-400 */
   }
 
   .prose-ai-dark li::marker {
@@ -320,13 +347,13 @@
     border-left: 3px solid #e5e5e5;
     padding-left: 1em;
     margin: 0.75em 0;
-    color: #666;
+    color: #737373; /* gray-500 */
     font-style: italic;
   }
 
   .prose-ai-dark blockquote {
     border-left-color: #8b5cf6;
-    color: #999;
+    color: #a3a3a3; /* gray-400 */
   }
 
   .prose-ai a {

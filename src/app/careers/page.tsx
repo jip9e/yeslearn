@@ -15,27 +15,27 @@ const JOBS = [
 
 export default function CareersPage() {
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white dark:bg-[#0b0b0b] text-gray-900 dark:text-gray-100">
       <Navigation />
       <main className="pt-[120px] pb-[80px] px-6">
         <div className="max-w-[800px] mx-auto">
           <div className="text-center mb-16">
             <h1 className="text-[48px] font-bold tracking-tight mb-4">Join YesLearn</h1>
-            <p className="text-[18px] text-[#666] max-w-[500px] mx-auto">Help us build the future of learning. We&apos;re looking for passionate people to join our team.</p>
+            <p className="text-[18px] text-[#666] dark:text-gray-400 max-w-[500px] mx-auto">Help us build the future of learning. We&apos;re looking for passionate people to join our team.</p>
           </div>
 
           <div className="space-y-3">
             {JOBS.map((job) => (
               <div
                 key={job.title}
-                className="flex items-center justify-between p-5 rounded-2xl border border-[#e5e5e5] bg-white hover:border-[#ccc] hover:shadow-sm transition-all group cursor-pointer"
+                className="flex items-center justify-between p-5 rounded-2xl border border-[#e5e5e5] dark:border-[#2a2a2a] bg-white dark:bg-[#111] hover:border-[#ccc] dark:hover:border-[#444] hover:shadow-sm transition-all group"
               >
                 <div>
-                  <h3 className="text-[15px] font-semibold group-hover:text-black">{job.title}</h3>
+                  <h3 className="text-[15px] font-semibold text-gray-900 dark:text-gray-100 group-hover:text-black dark:group-hover:text-white">{job.title}</h3>
                   <div className="flex items-center gap-4 mt-1.5">
-                    <span className="text-[12px] text-[#999] flex items-center gap-1"><MapPin size={11} />{job.location}</span>
-                    <span className="text-[12px] text-[#999] flex items-center gap-1"><Clock size={11} />{job.type}</span>
-                    <span className="text-[11px] px-2 py-0.5 rounded-full bg-[#f1f1f1] text-[#666]">{job.team}</span>
+                    <span className="text-[12px] text-[#999] dark:text-gray-400 flex items-center gap-1"><MapPin size={11} />{job.location}</span>
+                    <span className="text-[12px] text-[#999] dark:text-gray-400 flex items-center gap-1"><Clock size={11} />{job.type}</span>
+                    <span className="text-[11px] px-2 py-0.5 rounded-full bg-[#f1f1f1] dark:bg-[#1f1f1f] text-[#666] dark:text-gray-300">{job.team}</span>
                   </div>
                 </div>
                 <ArrowRight size={16} className="text-[#ccc] group-hover:text-black transition-colors" />
@@ -43,9 +43,9 @@ export default function CareersPage() {
             ))}
           </div>
 
-          <div className="mt-12 text-center bg-[#f8f8f8] rounded-2xl p-8">
+          <div className="mt-12 text-center bg-[#f8f8f8] dark:bg-[#171717] rounded-2xl p-8 border border-transparent dark:border-[#2a2a2a]">
             <h3 className="text-[18px] font-semibold mb-2">Don&apos;t see a role that fits?</h3>
-            <p className="text-[14px] text-[#666] mb-4">We&apos;re always looking for talented people. Send us your resume and we&apos;ll keep you in mind.</p>
+            <p className="text-[14px] text-[#666] dark:text-gray-400 mb-4">We&apos;re always looking for talented people. Send us your resume and we&apos;ll keep you in mind.</p>
             <Link href="/contact" className="inline-flex px-6 py-2.5 rounded-xl bg-black text-white text-[13px] font-medium hover:opacity-90">
               Get in Touch
             </Link>

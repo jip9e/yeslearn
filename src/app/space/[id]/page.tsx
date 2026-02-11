@@ -143,7 +143,7 @@ function CopyButton({ text }: { text: string }) {
     setTimeout(() => setCopied(false), 2000);
   };
   return (
-    <button onClick={handleCopy} className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 transition-colors" title="Copy">
+    <button onClick={handleCopy} className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 transition-colors" title="Copy" aria-label="Copy message">
       {copied ? <Check size={13} className="text-green-500" /> : <Copy size={13} className="text-[#999]" />}
     </button>
   );
@@ -158,7 +158,7 @@ function ToolCard({ icon, label, color, onClick, loading, description }: {
     <button
       onClick={onClick}
       disabled={loading}
-      className="group flex items-center gap-3 p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 hover:bg-gradient-to-br hover:from-gray-50 hover:to-white dark:hover:from-gray-800 dark:hover:to-gray-900 hover:border-gray-300 dark:hover:border-gray-700 transition-all duration-300 hover:shadow-lg active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+      className="group flex items-center gap-3 p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 hover:bg-gradient-to-br hover:from-gray-50 hover:to-white dark:hover:from-gray-800 dark:hover:to-gray-900 hover:border-gray-300 dark:hover:border-gray-700 transition-all duration-300 hover:shadow-lg active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-black dark:focus-visible:ring-white"
     >
       <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-gradient-to-br from-gray-100 to-gray-50 dark:from-gray-800 dark:to-gray-900 group-hover:scale-110 transition-transform shadow-sm">
         {loading ? (
@@ -211,7 +211,7 @@ function SelectionToolbar({ position, text, onAction, onClose }: {
     >
       <button
         onClick={handleCopy}
-        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] font-medium text-[#555] dark:text-[#aaa] hover:bg-[#f0f0f0] dark:hover:bg-[#222] hover:text-black dark:hover:text-white transition-colors"
+        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] font-medium text-[#555] dark:text-[#aaa] hover:bg-[#f0f0f0] dark:hover:bg-[#222] hover:text-black dark:hover:text-white transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-black dark:focus-visible:ring-white"
       >
         {copied ? <Check size={13} className="text-green-500" /> : <Copy size={13} />}
         {copied ? "Copied" : "Copy"}
@@ -221,7 +221,7 @@ function SelectionToolbar({ position, text, onAction, onClose }: {
         <button
           key={a.id}
           onClick={() => { onAction(a.id, text); onClose(); }}
-          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] font-medium text-[#555] dark:text-[#aaa] hover:bg-[#f0f0f0] dark:hover:bg-[#222] hover:text-black dark:hover:text-white transition-colors"
+          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] font-medium text-[#555] dark:text-[#aaa] hover:bg-[#f0f0f0] dark:hover:bg-[#222] hover:text-black dark:hover:text-white transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-black dark:focus-visible:ring-white"
         >
           {a.icon} {a.label}
         </button>
@@ -260,6 +260,9 @@ export default function SpaceDetailPage() {
   const [quotedText, setQuotedText] = useState<string | null>(null);
   const [showMentions, setShowMentions] = useState(false);
   const [mentionResults, setMentionResults] = useState<ContentItem[]>([]);
+  const [learnPanelError, setLearnPanelError] = useState<string | null>(null);
+
+  const tabListRef = useRef<HTMLDivElement>(null);
 
   // Chat sessions
   const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
@@ -486,20 +489,65 @@ export default function SpaceDetailPage() {
     }
   };
 
+  const openChatSession = useCallback((session: ChatSession) => {
+    setAIPanelTab("chat");
+    setActiveChatId(session.id);
+    setMessages(session.messages);
+    setFollowUps(session.messages.length > 0 ? (session.messages[session.messages.length - 1].followUpQuestions || []) : []);
+  }, []);
+
+  const handleTablistKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    const tablist = tabListRef.current;
+    if (!tablist) return;
+
+    const tabs = Array.from(tablist.querySelectorAll<HTMLElement>("[role='tab']"));
+    if (tabs.length === 0) return;
+
+    const currentIndex = tabs.findIndex((tab) => tab === document.activeElement);
+    if (currentIndex < 0) return;
+
+    const focusAndActivate = (index: number) => {
+      const nextTab = tabs[index];
+      if (!nextTab) return;
+      nextTab.focus();
+      nextTab.click();
+    };
+
+    if (e.key === "ArrowRight") {
+      e.preventDefault();
+      focusAndActivate((currentIndex + 1) % tabs.length);
+    } else if (e.key === "ArrowLeft") {
+      e.preventDefault();
+      focusAndActivate((currentIndex - 1 + tabs.length) % tabs.length);
+    } else if (e.key === "Home") {
+      e.preventDefault();
+      focusAndActivate(0);
+    } else if (e.key === "End") {
+      e.preventDefault();
+      focusAndActivate(tabs.length - 1);
+    }
+  };
+
   const handleGenerateSummary = async () => {
     if (generatingSummary) return;
+    setLearnPanelError(null);
     setGeneratingSummary(true);
     try {
       const res = await fetch("/api/summary", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ spaceId }) });
       const data = await res.json();
-      if (data.summaries && space) setSpace({ ...space, summaries: data.summaries });
-      else if (data.error) alert(data.error);
-    } catch { alert("Failed to generate summary."); }
-    finally { setGeneratingSummary(false); }
+      if (data.summaries && space) {
+        setSpace({ ...space, summaries: data.summaries });
+      } else if (data.error) {
+        setLearnPanelError(data.error);
+      }
+    } catch {
+      setLearnPanelError("Failed to generate summary.");
+    } finally { setGeneratingSummary(false); }
   };
 
   const handleGenerateQuiz = async () => {
     if (generatingQuiz) return;
+    setLearnPanelError(null);
     setGeneratingQuiz(true);
     setQuizAnswers({});
     setQuizSubmitted(false);
@@ -511,12 +559,19 @@ export default function SpaceDetailPage() {
           ...q, options: typeof q.options === "string" ? JSON.parse(q.options) : q.options,
         }));
         setSpace({ ...space, quizQuestions: parsed });
-      } else if (data.error) alert(data.error);
-    } catch { alert("Failed to generate quiz."); }
+      } else if (data.error) {
+        setLearnPanelError(data.error);
+      }
+    } catch {
+      setLearnPanelError("Failed to generate quiz.");
+    }
     finally { setGeneratingQuiz(false); }
   };
 
-  const handleDeleteContent = async (contentId: string) => {
+  const handleDeleteContent = async (contentId: string, contentName: string) => {
+    const confirmed = window.confirm(`Delete "${contentName}"? This cannot be undone.`);
+    if (!confirmed) return;
+
     setDeleting(contentId);
     try {
       await fetch(`/api/content/${contentId}`, { method: "DELETE" });
@@ -538,14 +593,14 @@ export default function SpaceDetailPage() {
   /* ── Loading / Not Found ──────────────────────────────── */
 
   if (loading) {
-    return <div className="h-full flex items-center justify-center bg-[#fafafa] dark:bg-[#0a0a0a]"><Loader2 size={24} className="animate-spin text-[#999]" /></div>;
+    return <div className="h-full flex items-center justify-center bg-[#fafafa] dark:bg-[#0a0a0a]" role="status" aria-label="Loading space"><Loader2 size={24} className="animate-spin text-[#999]" /></div>;
   }
 
   if (!space) {
     return (
-      <div className="h-full flex flex-col items-center justify-center gap-3 bg-[#fafafa] dark:bg-[#0a0a0a]">
+      <div className="h-full flex flex-col items-center justify-center gap-3 bg-[#fafafa] dark:bg-[#0a0a0a]" role="alert">
         <p className="text-[16px] font-medium">Space not found</p>
-        <Link href="/dashboard" className="text-[13px] text-[#999] hover:text-black">← Back to Dashboard</Link>
+        <Link href="/dashboard" className="text-[13px] text-[#999] hover:text-black dark:hover:text-white">← Back to Dashboard</Link>
       </div>
     );
   }
@@ -582,6 +637,7 @@ export default function SpaceDetailPage() {
                     onClick={() => setSelectedContent(null)}
                     className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-all text-gray-500 dark:text-gray-400"
                     title="Back to content list"
+                    aria-label="Back to content list"
                   >
                     <ArrowLeft size={16} />
                   </button>
@@ -593,13 +649,15 @@ export default function SpaceDetailPage() {
                     href={`/dashboard/add?spaceId=${space.id}`}
                     className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-all text-gray-500 dark:text-gray-400"
                     title="Add Content"
+                    aria-label="Add content"
                   >
                     <Plus size={16} />
                   </Link>
                   <button 
-                    onClick={() => handleDeleteContent(selectedItem.id)} 
+                    onClick={() => handleDeleteContent(selectedItem.id, selectedItem.name)} 
                     disabled={deleting === selectedItem.id} 
                     className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-all text-gray-500 dark:text-gray-400"
+                    aria-label={`Delete ${selectedItem.name}`}
                   >
                     {deleting === selectedItem.id ? (
                       <Loader2 size={16} className="animate-spin" />
@@ -630,6 +688,7 @@ export default function SpaceDetailPage() {
                         src={getYoutubeEmbedUrl(selectedItem.sourceUrl)!} 
                         className="w-full h-full" 
                         allowFullScreen 
+                        title={`YouTube video: ${selectedItem.name}`}
                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
                       />
                     ) : (
@@ -639,32 +698,18 @@ export default function SpaceDetailPage() {
                     )}
                   </div>
                   
-                  {/* Transcript/Chapters section (like youlearn.ai) */}
+                  {/* Transcript section */}
                   {selectedItem.extractedText && (
                     <div className="flex-1 overflow-y-auto bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800">
                       <div className="p-6">
                         <div className="flex items-center gap-3 mb-4">
-                          <button className="px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white text-[14px] font-medium">
-                            Chapters
-                          </button>
-                          <button className="px-4 py-2 rounded-lg text-gray-600 dark:text-gray-400 text-[14px] font-medium hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-                            Transcripts
-                          </button>
+                          <h3 className="px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white text-[14px] font-medium">
+                            Transcript
+                          </h3>
                         </div>
                         
-                        <div className="space-y-4">
-                          {/* Sample chapter format - in real app, parse from transcript */}
-                          <div className="group cursor-pointer">
-                            <div className="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                              <span className="text-[13px] font-mono text-gray-500 dark:text-gray-400 shrink-0">00:00</span>
-                              <div className="flex-1">
-                                <h4 className="text-[14px] font-medium text-gray-900 dark:text-white mb-1">Introduction</h4>
-                                <p className="text-[13px] text-gray-600 dark:text-gray-400 leading-relaxed line-clamp-2">
-                                  {selectedItem.extractedText.slice(0, 150)}...
-                                </p>
-                              </div>
-                            </div>
-                          </div>
+                        <div className="text-[14px] text-gray-600 dark:text-gray-400 leading-[1.8] whitespace-pre-line select-text cursor-text max-w-[700px]">
+                          {selectedItem.extractedText}
                         </div>
                       </div>
                     </div>
@@ -696,7 +741,7 @@ export default function SpaceDetailPage() {
               {/* Compact header */}
               <div className="flex items-center justify-between px-4 py-2 border-b border-gray-200 dark:border-gray-800 shrink-0">
                 <div className="flex items-center gap-2">
-                  <Link href="/dashboard" className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-all text-gray-500 dark:text-gray-400">
+                  <Link href="/dashboard" className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-all text-gray-500 dark:text-gray-400" aria-label="Back to dashboard" title="Back to dashboard">
                     <ArrowLeft size={16} />
                   </Link>
                   <h1 className="text-[13px] font-medium text-gray-900 dark:text-white">{space.name}</h1>
@@ -719,6 +764,7 @@ export default function SpaceDetailPage() {
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder="Search..."
+                      aria-label="Search content items"
                       className="bg-transparent text-[13px] outline-none flex-1 placeholder:text-gray-400 text-gray-900 dark:text-white"
                     />
                   </div>
@@ -774,7 +820,8 @@ export default function SpaceDetailPage() {
                         <button
                           key={item.id}
                           onClick={() => setSelectedContent(item.id)}
-                          className="group text-left bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700 hover:shadow-xl transition-all duration-300 relative overflow-hidden"
+                          aria-label={`Open ${item.name}`}
+                          className="group text-left bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700 hover:shadow-xl transition-all duration-300 relative overflow-hidden focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-black dark:focus-visible:ring-white"
                         >
                           {/* Thumbnail for videos */}
                           {thumbnail ? (
@@ -842,7 +889,11 @@ export default function SpaceDetailPage() {
             {/* ═══ RESIZE HANDLE ═══ */}
             {!isMobile && (
               <div
-                className={`w-2 cursor-col-resize hover:bg-[#8b5cf6]/30 active:bg-[#8b5cf6]/50 transition-colors touch-none ${isDragging ? "bg-[#8b5cf6]/50" : "bg-transparent"}`}
+                role="separator"
+                aria-orientation="vertical"
+                aria-label="Resize AI panel"
+                tabIndex={0}
+                className={`w-2 cursor-col-resize hover:bg-[#8b5cf6]/30 active:bg-[#8b5cf6]/50 transition-colors touch-none focus-visible:bg-[#8b5cf6]/40 focus-visible:outline-none ${isDragging ? "bg-[#8b5cf6]/50" : "bg-transparent"}`}
                 onMouseDown={handleResizeStart}
                 onTouchStart={handleResizeStart}
               />
@@ -859,10 +910,25 @@ export default function SpaceDetailPage() {
             >
               {/* ─── Tab bar ───────────────────────── */}
               <div className="flex items-center justify-between px-2 pt-2 pb-0 shrink-0 bg-[#0d0d12]">
-                <div className="flex items-center gap-0.5 flex-1">
+                <div
+                  ref={tabListRef}
+                  role="tablist"
+                  aria-label="Assistant tabs"
+                  onKeyDown={handleTablistKeyDown}
+                  className="flex items-center gap-0.5 flex-1"
+                >
                   {/* Learn Tab */}
                   <button
-                    onClick={() => setAIPanelTab("learn")}
+                    role="tab"
+                    id="learn-tab"
+                    type="button"
+                    aria-selected={aiPanelTab === "learn"}
+                    aria-controls="learn-panel"
+                    tabIndex={aiPanelTab === "learn" ? 0 : -1}
+                    onClick={() => {
+                      setAIPanelTab("learn");
+                      setLearnPanelError(null);
+                    }}
                     className={`flex items-center gap-1.5 px-4 py-2.5 rounded-t-xl text-[13px] font-medium transition-all ${
                       aiPanelTab === "learn"
                         ? "bg-[#141420] text-white border border-[#1e1e3a] border-b-transparent"
@@ -878,14 +944,18 @@ export default function SpaceDetailPage() {
                     <div
                       key={session.id}
                       role="tab"
-                      tabIndex={0}
-                      onClick={() => {
-                        setAIPanelTab("chat");
-                        setActiveChatId(session.id);
-                        setMessages(session.messages);
-                        setFollowUps(session.messages.length > 0 ? (session.messages[session.messages.length - 1].followUpQuestions || []) : []);
+                      id={`chat-tab-${session.id}`}
+                      aria-selected={aiPanelTab === "chat" && activeChatId === session.id}
+                      aria-controls="chat-panel"
+                      tabIndex={aiPanelTab === "chat" && activeChatId === session.id ? 0 : -1}
+                      onClick={() => openChatSession(session)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          openChatSession(session);
+                        }
                       }}
-                      className={`group flex items-center gap-1.5 px-3 py-2.5 rounded-t-xl text-[12px] font-medium transition-all max-w-[140px] cursor-pointer select-none ${
+                      className={`group flex items-center gap-1.5 px-3 py-2.5 rounded-t-xl text-[12px] font-medium transition-all max-w-[140px] cursor-pointer select-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#8b5cf6] ${
                         aiPanelTab === "chat" && activeChatId === session.id
                           ? "bg-[#141420] text-white border border-[#1e1e3a] border-b-transparent"
                           : "text-[#555] hover:text-[#999] hover:bg-[#111118]"
@@ -904,6 +974,7 @@ export default function SpaceDetailPage() {
                           }
                         }}
                         className="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-[#222] rounded transition-all shrink-0"
+                        aria-label={`Close chat ${session.name}`}
                       >
                         <X size={10} />
                       </button>
@@ -923,6 +994,7 @@ export default function SpaceDetailPage() {
                     }}
                     className="p-2 rounded-lg text-[#555] hover:text-white hover:bg-[#1a1a2e] transition-all ml-1"
                     title="New chat"
+                    aria-label="Start new chat"
                   >
                     <Plus size={14} />
                   </button>
@@ -932,6 +1004,7 @@ export default function SpaceDetailPage() {
                   onClick={() => setAIPanelOpen(false)} 
                   className="p-2 rounded-lg hover:bg-[#1a1a2e] transition-all text-[#555] hover:text-white ml-2"
                   title="Close panel"
+                  aria-label="Close assistant panel"
                 >
                   <X size={14} />
                 </button>
@@ -942,8 +1015,23 @@ export default function SpaceDetailPage() {
 
               {/* ─── LEARN TAB CONTENT ─────────────── */}
               {aiPanelTab === "learn" && (
-                <div className="flex-1 overflow-y-auto bg-[#141420]">
+                <div
+                  id="learn-panel"
+                  role="tabpanel"
+                  aria-labelledby="learn-tab"
+                  className="flex-1 overflow-y-auto bg-[#141420]"
+                >
                   <div className="p-5 space-y-6">
+                    {learnPanelError && (
+                      <div
+                        role="alert"
+                        aria-live="assertive"
+                        className="rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-2 text-[12px] text-red-300"
+                      >
+                        {learnPanelError}
+                      </div>
+                    )}
+
                     {/* Generate section */}
                     <div>
                       <h4 className="text-[14px] font-semibold text-white mb-3">Generate</h4>
@@ -951,7 +1039,8 @@ export default function SpaceDetailPage() {
                         <button
                           onClick={handleGenerateSummary}
                           disabled={generatingSummary}
-                          className="flex flex-col items-center gap-2 p-4 rounded-xl border border-[#1e1e3a] bg-[#0d0d12] hover:bg-[#1a1a2e] transition-all disabled:opacity-50"
+                          aria-label={generatingSummary ? "Generating summary…" : "Generate summary"}
+                          className="flex flex-col items-center gap-2 p-4 rounded-xl border border-[#1e1e3a] bg-[#0d0d12] hover:bg-[#1a1a2e] transition-all disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#8b5cf6]"
                         >
                           <div className="w-10 h-10 rounded-lg bg-[#1a1a2e] flex items-center justify-center">
                             {generatingSummary ? (
@@ -966,7 +1055,8 @@ export default function SpaceDetailPage() {
                         <button
                           onClick={handleGenerateQuiz}
                           disabled={generatingQuiz}
-                          className="flex flex-col items-center gap-2 p-4 rounded-xl border border-[#1e1e3a] bg-[#0d0d12] hover:bg-[#1a1a2e] transition-all disabled:opacity-50"
+                          aria-label={generatingQuiz ? "Generating quiz…" : "Generate quiz"}
+                          className="flex flex-col items-center gap-2 p-4 rounded-xl border border-[#1e1e3a] bg-[#0d0d12] hover:bg-[#1a1a2e] transition-all disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#8b5cf6]"
                         >
                           <div className="w-10 h-10 rounded-lg bg-[#1a1a2e] flex items-center justify-center">
                             {generatingQuiz ? (
@@ -978,14 +1068,14 @@ export default function SpaceDetailPage() {
                           <span className="text-[13px] font-medium text-white">Quiz</span>
                         </button>
 
-                        <button disabled className="flex flex-col items-center gap-2 p-4 rounded-xl border border-[#1e1e3a] bg-[#0d0d12] opacity-40 cursor-not-allowed">
+                        <button disabled aria-label="Flashcards (coming soon)" className="flex flex-col items-center gap-2 p-4 rounded-xl border border-[#1e1e3a] bg-[#0d0d12] opacity-40 cursor-not-allowed">
                           <div className="w-10 h-10 rounded-lg bg-[#1a1a2e] flex items-center justify-center">
                             <GraduationCap size={20} className="text-[#a78bfa]" />
                           </div>
                           <span className="text-[13px] font-medium text-white">Flashcards</span>
                         </button>
 
-                        <button disabled className="flex flex-col items-center gap-2 p-4 rounded-xl border border-[#1e1e3a] bg-[#0d0d12] opacity-40 cursor-not-allowed">
+                        <button disabled aria-label="Podcast (coming soon)" className="flex flex-col items-center gap-2 p-4 rounded-xl border border-[#1e1e3a] bg-[#0d0d12] opacity-40 cursor-not-allowed">
                           <div className="w-10 h-10 rounded-lg bg-[#1a1a2e] flex items-center justify-center">
                             <Headphones size={20} className="text-[#a78bfa]" />
                           </div>
@@ -1002,7 +1092,8 @@ export default function SpaceDetailPage() {
                           <button 
                             onClick={handleGenerateSummary} 
                             disabled={generatingSummary} 
-                            className="text-[12px] text-[#666] hover:text-white transition-colors disabled:opacity-50"
+                            aria-label={generatingSummary ? "Regenerating summary…" : "Refresh summary"}
+                            className="text-[12px] text-[#666] hover:text-white transition-colors disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#8b5cf6] rounded"
                           >
                             {generatingSummary ? "Generating..." : "Refresh"}
                           </button>
@@ -1033,7 +1124,7 @@ export default function SpaceDetailPage() {
                               <span className={`text-[12px] font-bold ${quizPercent >= 70 ? 'text-emerald-400' : 'text-amber-400'}`}>
                                 {quizScore}/{quizTotal} ({quizPercent}%)
                               </span>
-                              <button onClick={() => { setQuizAnswers({}); setQuizSubmitted(false); }} className="text-[11px] text-[#666] hover:text-white transition-colors flex items-center gap-1">
+                              <button onClick={() => { setQuizAnswers({}); setQuizSubmitted(false); }} aria-label="Retry quiz" className="text-[11px] text-[#666] hover:text-white transition-colors flex items-center gap-1 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#8b5cf6] rounded">
                                 <RotateCcw size={11} /> Retry
                               </button>
                             </div>
@@ -1056,7 +1147,8 @@ export default function SpaceDetailPage() {
                                         key={oi}
                                         onClick={() => !quizSubmitted && setQuizAnswers({ ...quizAnswers, [qi]: oi })}
                                         disabled={quizSubmitted}
-                                        className={`w-full text-left px-3 py-2.5 rounded-lg text-[13px] transition-all border ${
+                                        aria-label={`Option ${oi + 1}: ${opt}`}
+                                        className={`w-full text-left px-3 py-2.5 rounded-lg text-[13px] transition-all border focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#8b5cf6] ${
                                           isCorrect ? "bg-emerald-500/10 border-emerald-500/40 text-emerald-300" :
                                           isSelected && quizSubmitted ? "bg-red-500/10 border-red-500/40 text-red-300" :
                                           isSelected ? "bg-[#8b5cf6]/10 border-[#8b5cf6]/40 text-white" :
@@ -1080,7 +1172,7 @@ export default function SpaceDetailPage() {
                           <button
                             onClick={() => setQuizSubmitted(true)}
                             disabled={Object.keys(quizAnswers).length < (space.quizQuestions || []).length}
-                            className="mt-4 w-full py-3 rounded-xl bg-[#8b5cf6] text-white text-[14px] font-semibold hover:bg-[#7c3aed] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                            className="mt-4 w-full py-3 rounded-xl bg-[#8b5cf6] text-white text-[14px] font-semibold hover:bg-[#7c3aed] transition-all disabled:opacity-40 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#8b5cf6]"
                           >
                             Submit Answers
                           </button>
@@ -1113,6 +1205,7 @@ export default function SpaceDetailPage() {
                         <button
                           onClick={() => handleSendMessage()}
                           disabled={!chatInput.trim() || sendingChat}
+                          aria-label="Send message"
                           className={`absolute right-2 bottom-1.5 p-2 rounded-lg transition-all ${chatInput.trim() ? 'bg-[#8b5cf6] text-white hover:bg-[#7c3aed]' : 'text-[#333]'} disabled:cursor-not-allowed`}
                         >
                           <Send size={14} />
@@ -1125,7 +1218,12 @@ export default function SpaceDetailPage() {
 
               {/* ─── CHAT TAB CONTENT ──────────────── */}
               {aiPanelTab === "chat" && (
-                <div className="flex-1 flex flex-col bg-[#141420] overflow-hidden">
+                <div
+                  id="chat-panel"
+                  role="tabpanel"
+                  aria-labelledby={activeChatId ? `chat-tab-${activeChatId}` : "learn-tab"}
+                  className="flex-1 flex flex-col bg-[#141420] overflow-hidden"
+                >
                   {/* Messages */}
                   <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4" style={{ scrollBehavior: 'smooth' }}>
                     {messages.length === 0 ? (
@@ -1148,7 +1246,7 @@ export default function SpaceDetailPage() {
                             <button
                               key={chip}
                               onClick={() => { setChatInput(chip); handleSendMessage(chip); }}
-                              className="px-3 py-2 rounded-xl bg-[#1a1a2e] border border-[#252545] text-[12px] text-[#aaa] hover:text-white hover:bg-[#252545] hover:border-[#8b5cf6]/30 transition-all"
+                              className="px-3 py-2 rounded-xl bg-[#1a1a2e] border border-[#252545] text-[12px] text-[#aaa] hover:text-white hover:bg-[#252545] hover:border-[#8b5cf6]/30 transition-all focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#8b5cf6]"
                             >
                               {chip}
                             </button>
@@ -1223,13 +1321,14 @@ export default function SpaceDetailPage() {
                                       onClick={() => navigator.clipboard.writeText(msg.content)}
                                       className="p-1.5 rounded-lg hover:bg-[#1a1a2e] transition-colors"
                                       title="Copy"
+                                      aria-label="Copy AI response"
                                     >
                                       <Copy size={12} className="text-[#555]" />
                                     </button>
-                                    <button className="p-1.5 rounded-lg hover:bg-[#1a1a2e] transition-colors" title="Good">
+                                    <button className="p-1.5 rounded-lg hover:bg-[#1a1a2e] transition-colors" title="Good" aria-label="Mark response as helpful">
                                       <ThumbsUp size={12} className="text-[#555]" />
                                     </button>
-                                    <button className="p-1.5 rounded-lg hover:bg-[#1a1a2e] transition-colors" title="Bad">
+                                    <button className="p-1.5 rounded-lg hover:bg-[#1a1a2e] transition-colors" title="Bad" aria-label="Mark response as not helpful">
                                       <ThumbsDown size={12} className="text-[#555]" />
                                     </button>
                                   </div>
@@ -1242,7 +1341,7 @@ export default function SpaceDetailPage() {
                                         <button
                                           key={i}
                                           onClick={() => { setChatInput(q); handleSendMessage(q); }}
-                                          className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-[#0d0d12] border border-[#1e1e3a] text-[12px] text-[#bbb] hover:text-white hover:bg-[#1a1a2e] hover:border-[#8b5cf6]/30 transition-all text-left group"
+                                          className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-[#0d0d12] border border-[#1e1e3a] text-[12px] text-[#bbb] hover:text-white hover:bg-[#1a1a2e] hover:border-[#8b5cf6]/30 transition-all text-left group focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#8b5cf6]"
                                         >
                                           <ChevronRight size={12} className="text-[#8b5cf6] shrink-0 group-hover:translate-x-0.5 transition-transform" />
                                           <span className="line-clamp-2">{q}</span>
@@ -1289,7 +1388,7 @@ export default function SpaceDetailPage() {
                             <p className="text-[12px] text-[#aaa] leading-relaxed line-clamp-2">{quotedText}</p>
                           </div>
                         </div>
-                        <button onClick={() => setQuotedText(null)} className="p-1 hover:bg-[#8b5cf6]/20 rounded-lg transition-colors shrink-0">
+                        <button onClick={() => setQuotedText(null)} aria-label="Remove selected text quote" className="p-1 hover:bg-[#8b5cf6]/20 rounded-lg transition-colors shrink-0">
                           <X size={14} className="text-[#8b5cf6]" />
                         </button>
                       </div>
@@ -1319,6 +1418,7 @@ export default function SpaceDetailPage() {
                       <button
                         onClick={() => handleSendMessage()}
                         disabled={!chatInput.trim() || sendingChat}
+                        aria-label="Send chat message"
                         className={`absolute right-2 bottom-1.5 p-2 rounded-lg transition-all duration-200 ${chatInput.trim() 
                           ? 'bg-[#8b5cf6] text-white shadow-lg shadow-[#8b5cf6]/25 hover:bg-[#7c3aed] active:scale-95' 
                           : 'text-[#333]'} disabled:cursor-not-allowed`}
@@ -1340,6 +1440,7 @@ export default function SpaceDetailPage() {
             onClick={() => setAIPanelOpen(true)}
             className="fixed right-6 bottom-6 w-14 h-14 rounded-2xl bg-gradient-to-br from-[#8b5cf6] to-[#6366f1] text-white shadow-xl shadow-[#8b5cf6]/30 hover:shadow-[#8b5cf6]/50 transition-all flex items-center justify-center z-50 hover:scale-110 active:scale-95"
             title="Open AI Assistant"
+            aria-label="Open AI assistant"
           >
             <Sparkles size={24} />
           </button>

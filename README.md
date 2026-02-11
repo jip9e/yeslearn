@@ -1,14 +1,14 @@
 # YesLearn — AI-Powered Learning Platform
 
-YesLearn is an AI-powered study platform that transforms your learning materials into interactive study tools. Upload PDFs, YouTube videos, websites, or audio recordings, and YesLearn will generate summaries, quizzes, and an AI chat tutor — all grounded in your content.
+YesLearn is an AI-powered study platform that transforms your learning materials into interactive study tools. Add PDFs, YouTube videos, websites, or text notes, and YesLearn generates summaries, quizzes, and an AI study chat grounded in your content.
 
 ## Features
 
-### 📚 Multi-Format Content Upload
-- **YouTube Videos** — Paste a YouTube URL to extract and learn from the transcript
+### 📚 Multi-Format Content Ingestion
+- **YouTube Videos** — Paste a YouTube URL and study from extracted transcript content
 - **PDFs & Documents** — Upload PDFs to extract and study the text content
-- **Websites** — Paste any URL to pull in and analyze web content
-- **Audio Recordings** — Upload audio files for transcription and study
+- **Websites** — Paste a URL to pull in and analyze web content
+- **Text / Notes** — Paste your own notes or raw text directly
 
 ### 🧠 AI-Powered Summaries
 Automatically generate concise, structured summaries of your uploaded content. Summaries highlight key concepts, important details, and main takeaways.
@@ -53,8 +53,8 @@ Full dark mode support for comfortable studying at any hour.
 
 ```bash
 # Clone the repository
-git clone https://github.com/jip9e/orchids-yeslearn-ai.git
-cd orchids-yeslearn-ai
+git clone https://github.com/jip9e/yeslearn.git
+cd yeslearn
 
 # Install dependencies
 npm install --legacy-peer-deps
@@ -128,6 +128,22 @@ src/
 | `npm run build` | Create production build |
 | `npm run start` | Start production server |
 | `npm run lint` | Run ESLint |
+
+## UX Quality & Trust Standards
+
+This repo now follows a stronger product-quality baseline:
+
+- **Honest UI over fake UI**: no placeholder behaviors presented as real functionality.
+- **Single cohesive theme system**: neutral semantic colors across marketing + app surfaces.
+- **Accessibility-first interactions**: improved labels, keyboard support, focus visibility, and non-blocking feedback patterns.
+- **Safer destructive actions**: deletion flows require confirmation.
+- **Clearer validation UX**: form errors reset when users correct relevant input.
+
+Reference docs from the latest quality pass:
+- `UX-AUDIT.md`
+- `A11Y_FIXES_SUMMARY.md`
+- `SESSION_HANDOFF_2026-02-11_UIUX.md`
+- `MODEL_ROUTING_LESSONS.md`
 
 ## Coming Soon
 

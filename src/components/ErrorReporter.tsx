@@ -104,10 +104,18 @@ export default function ErrorReporter({ error, reset }: ReporterProps) {
               Something went wrong!
             </h1>
             <p className="text-muted-foreground">
-              An unexpected error occurred. Please try again fixing with Orchids
+              An unexpected error occurred. Please try again.
             </p>
           </div>
           <div className="space-y-2">
+            {reset && (
+              <button
+                onClick={reset}
+                className="px-6 py-2.5 rounded-xl bg-primary text-primary-foreground text-[14px] font-medium hover:opacity-90 transition-all focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-current"
+              >
+                Try Again
+              </button>
+            )}
             {process.env.NODE_ENV === "development" && (
               <details className="mt-4 text-left">
                 <summary className="cursor-pointer text-sm text-muted-foreground hover:text-foreground">

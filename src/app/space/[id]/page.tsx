@@ -37,6 +37,9 @@ import {
   Lightbulb,
   Maximize2,
   Minimize2,
+  Hash,
+  ChevronRight,
+  ExternalLink,
 } from "lucide-react";
 
 /* ────────────────────────── Types ────────────────────────── */
@@ -56,6 +59,8 @@ interface ChatMessage {
   role: "user" | "ai";
   content: string;
   createdAt: string;
+  sources?: { index: number; name: string }[];
+  followUpQuestions?: string[];
 }
 
 interface Summary {
@@ -84,6 +89,13 @@ interface SpaceData {
 }
 
 type AIPanelTab = "learn" | "chat";
+
+interface ChatSession {
+  id: string;
+  name: string;
+  messages: ChatMessage[];
+  createdAt: string;
+}
 
 /* ────────────────────────── Helpers ─────────────────────── */
 
@@ -249,6 +261,11 @@ export default function SpaceDetailPage() {
   const [showMentions, setShowMentions] = useState(false);
   const [mentionResults, setMentionResults] = useState<ContentItem[]>([]);
 
+  // Chat sessions
+  const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
+  const [activeChatId, setActiveChatId] = useState<string | null>(null);
+  const [followUps, setFollowUps] = useState<string[]>([]);
+
   // Resizable panel state
   const [aiPanelWidth, setAiPanelWidth] = useState(420);
   const [isDragging, setIsDragging] = useState(false);
@@ -368,16 +385,34 @@ export default function SpaceDetailPage() {
 
   /* ── handlers ─────────────────────────────────────────── */
 
-  const handleSendMessage = async () => {
-    if (!chatInput.trim() || sendingChat) return;
-    const userMsg = quotedText ? `> ${quotedText}\n\n${chatInput}` : chatInput;
+  const handleSendMessage = async (overrideInput?: string) => {
+    const input = overrideInput ?? chatInput;
+    if (!input.trim() || sendingChat) return;
+    const userMsg = quotedText ? `> ${quotedText}\n\n${input}` : input;
     setChatInput("");
     setQuotedText(null);
     setSendingChat(true);
+    setFollowUps([]);
+
+    // Auto-switch to chat tab
+    setAIPanelTab("chat");
+
+    // Create or use active chat session
+    let sessionId = activeChatId;
+    if (!sessionId) {
+      sessionId = `chat-${Date.now()}`;
+      const sessionName = input.slice(0, 40) + (input.length > 40 ? "..." : "");
+      const newSession: ChatSession = { id: sessionId, name: sessionName, messages: [], createdAt: new Date().toISOString() };
+      setChatSessions(prev => [...prev, newSession]);
+      setActiveChatId(sessionId);
+    }
 
     try {
       const tempUserMsg: ChatMessage = { id: "temp-user", role: "user", content: userMsg, createdAt: new Date().toISOString() };
       setMessages((prev) => [...prev, tempUserMsg]);
+
+      // Also update session
+      setChatSessions(prev => prev.map(s => s.id === sessionId ? { ...s, messages: [...s.messages, tempUserMsg] } : s));
 
       const res = await fetch("/api/chat", {
         method: "POST",
@@ -387,7 +422,16 @@ export default function SpaceDetailPage() {
       const data = await res.json();
 
       if (data.userMessage && data.aiMessage) {
-        setMessages((prev) => [...prev.filter((m) => m.id !== "temp-user"), data.userMessage, data.aiMessage]);
+        // Attach sources and follow-ups to AI message
+        const aiMsg: ChatMessage = {
+          ...data.aiMessage,
+          sources: data.sources || [],
+          followUpQuestions: data.followUpQuestions || [],
+        };
+        const newMsgs = [...messages.filter((m) => m.id !== "temp-user"), data.userMessage, aiMsg];
+        setMessages(newMsgs);
+        setChatSessions(prev => prev.map(s => s.id === sessionId ? { ...s, messages: newMsgs } : s));
+        setFollowUps(data.followUpQuestions || []);
       } else {
         setMessages((prev) => [...prev.filter((m) => m.id !== "temp-user"), data]);
       }
@@ -399,9 +443,25 @@ export default function SpaceDetailPage() {
   };
 
   const handleSelectionAction = (action: string, text: string) => {
-    setAIPanelTab("chat");
     setAIPanelOpen(true);
     setQuotedText(text);
+    setFollowUps([]);
+
+    // Create a new chat session for the action
+    const sessionId = `chat-${Date.now()}`;
+    const actionLabels: Record<string, string> = {
+      explain: "Explain: " + text.slice(0, 30) + "...",
+      summarize: "Summarize: " + text.slice(0, 30) + "...",
+      quiz: "Quiz: " + text.slice(0, 30) + "...",
+      chat: "Chat: " + text.slice(0, 30) + "...",
+    };
+    const sessionName = actionLabels[action] || text.slice(0, 40);
+    const newSession: ChatSession = { id: sessionId, name: sessionName, messages: [], createdAt: new Date().toISOString() };
+    setChatSessions(prev => [...prev, newSession]);
+    setActiveChatId(sessionId);
+    setMessages([]);
+    setAIPanelTab("chat");
+
     if (action === "explain") {
       setChatInput("Explain this concept in detail:");
     } else if (action === "summarize") {
@@ -769,7 +829,7 @@ export default function SpaceDetailPage() {
             {/* ═══ RESIZE HANDLE (desktop only) ═══ */}
             {!isMobile && (
               <div
-                className={`resize-handle ${isDragging ? "dragging" : ""}`}
+                className={`w-1 cursor-col-resize hover:bg-[#8b5cf6]/30 active:bg-[#8b5cf6]/50 transition-colors ${isDragging ? "bg-[#8b5cf6]/50" : "bg-transparent"}`}
                 onMouseDown={handleResizeStart}
                 onTouchStart={handleResizeStart}
               />
@@ -779,288 +839,247 @@ export default function SpaceDetailPage() {
             <div
               className={
                 isMobile
-                  ? "fixed inset-y-0 right-0 z-50 w-[85vw] max-w-[420px] bg-white dark:bg-[#0a0a0a] flex flex-col border-l border-gray-200 dark:border-gray-800 shadow-2xl animate-in slide-in-from-right duration-200"
-                  : "bg-white dark:bg-[#0a0a0a] flex flex-col shrink-0 transition-[width] duration-100 border-l border-gray-200 dark:border-gray-800"
+                  ? "fixed inset-y-0 right-0 z-50 w-[85vw] max-w-[420px] bg-[#0d0d12] flex flex-col border-l border-[#1a1a2e] shadow-2xl animate-in slide-in-from-right duration-200"
+                  : "bg-[#0d0d12] flex flex-col shrink-0 transition-[width] duration-100 border-l border-[#1a1a2e]"
               }
               style={isMobile ? undefined : { width: aiPanelWidth }}
             >
-              {/* Panel header */}
-              <div className="border-b border-gray-200 dark:border-gray-800 px-5 py-4 flex items-center justify-between shrink-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm">
-                <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-md bg-black dark:bg-white flex items-center justify-center">
-                    <Sparkles size={14} className="text-white dark:text-black" />
-                  </div>
-                  <h3 className="text-[15px] font-semibold text-gray-900 dark:text-white">
-                    Learn Tab
-                  </h3>
+              {/* ─── Tab bar ───────────────────────── */}
+              <div className="flex items-center justify-between px-2 pt-2 pb-0 shrink-0 bg-[#0d0d12]">
+                <div className="flex items-center gap-0.5 flex-1">
+                  {/* Learn Tab */}
+                  <button
+                    onClick={() => setAIPanelTab("learn")}
+                    className={`flex items-center gap-1.5 px-4 py-2.5 rounded-t-xl text-[13px] font-medium transition-all ${
+                      aiPanelTab === "learn"
+                        ? "bg-[#141420] text-white border border-[#1e1e3a] border-b-transparent"
+                        : "text-[#666] hover:text-[#999] hover:bg-[#111118]"
+                    }`}
+                  >
+                    <BookOpen size={14} />
+                    Learn
+                  </button>
+
+                  {/* Chat sessions as tabs */}
+                  {chatSessions.slice(-3).map((session) => (
+                    <button
+                      key={session.id}
+                      onClick={() => {
+                        setAIPanelTab("chat");
+                        setActiveChatId(session.id);
+                        setMessages(session.messages);
+                        setFollowUps(session.messages.length > 0 ? (session.messages[session.messages.length - 1].followUpQuestions || []) : []);
+                      }}
+                      className={`group flex items-center gap-1.5 px-3 py-2.5 rounded-t-xl text-[12px] font-medium transition-all max-w-[140px] ${
+                        aiPanelTab === "chat" && activeChatId === session.id
+                          ? "bg-[#141420] text-white border border-[#1e1e3a] border-b-transparent"
+                          : "text-[#555] hover:text-[#999] hover:bg-[#111118]"
+                      }`}
+                    >
+                      <MessageSquare size={12} className="shrink-0" />
+                      <span className="truncate">{session.name}</span>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setChatSessions(prev => prev.filter(s => s.id !== session.id));
+                          if (activeChatId === session.id) {
+                            setAIPanelTab("learn");
+                            setActiveChatId(null);
+                            setMessages([]);
+                          }
+                        }}
+                        className="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-[#222] rounded transition-all shrink-0"
+                      >
+                        <X size={10} />
+                      </button>
+                    </button>
+                  ))}
+
+                  {/* New chat button */}
+                  <button
+                    onClick={() => {
+                      const sessionId = `chat-${Date.now()}`;
+                      const newSession: ChatSession = { id: sessionId, name: "New Chat", messages: [], createdAt: new Date().toISOString() };
+                      setChatSessions(prev => [...prev, newSession]);
+                      setActiveChatId(sessionId);
+                      setMessages([]);
+                      setFollowUps([]);
+                      setAIPanelTab("chat");
+                    }}
+                    className="p-2 rounded-lg text-[#555] hover:text-white hover:bg-[#1a1a2e] transition-all ml-1"
+                    title="New chat"
+                  >
+                    <Plus size={14} />
+                  </button>
                 </div>
+
                 <button 
                   onClick={() => setAIPanelOpen(false)} 
-                  className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-all text-gray-600 dark:text-gray-400"
+                  className="p-2 rounded-lg hover:bg-[#1a1a2e] transition-all text-[#555] hover:text-white ml-2"
                   title="Close panel"
                 >
-                  <X size={16} />
+                  <X size={14} />
                 </button>
               </div>
 
-              {/* Panel content - Learn Tab style */}
-              <div className="flex-1 overflow-y-auto">
-                <div className="p-5 space-y-6">
-                  {/* Generate section */}
-                  <div>
-                    <h4 className="text-[14px] font-semibold text-gray-900 dark:text-white mb-3">Generate</h4>
-                    <div className="grid grid-cols-2 gap-3">
-                      <button
-                        onClick={handleGenerateSummary}
-                        disabled={generatingSummary}
-                        className="flex flex-col items-center gap-2 p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all disabled:opacity-50"
-                      >
-                        <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
-                          {generatingSummary ? (
-                            <Loader2 size={20} className="animate-spin text-gray-600 dark:text-gray-300" />
-                          ) : (
-                            <FileText size={20} className="text-gray-700 dark:text-gray-300" />
-                          )}
-                        </div>
-                        <span className="text-[13px] font-medium text-gray-900 dark:text-white">Summary</span>
-                      </button>
+              {/* Tab content border line */}
+              <div className="h-px bg-[#1e1e3a]" />
 
-                      <button
-                        onClick={handleGenerateQuiz}
-                        disabled={generatingQuiz}
-                        className="flex flex-col items-center gap-2 p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all disabled:opacity-50"
-                      >
-                        <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
-                          {generatingQuiz ? (
-                            <Loader2 size={20} className="animate-spin text-gray-600 dark:text-gray-300" />
-                          ) : (
-                            <Brain size={20} className="text-gray-700 dark:text-gray-300" />
-                          )}
-                        </div>
-                        <span className="text-[13px] font-medium text-gray-900 dark:text-white">Quiz</span>
-                      </button>
-
-                      <button
-                        disabled
-                        className="flex flex-col items-center gap-2 p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 opacity-50 cursor-not-allowed"
-                      >
-                        <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
-                          <GraduationCap size={20} className="text-gray-700 dark:text-gray-300" />
-                        </div>
-                        <span className="text-[13px] font-medium text-gray-900 dark:text-white">Flashcards</span>
-                      </button>
-
-                      <button
-                        disabled
-                        className="flex flex-col items-center gap-2 p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 opacity-50 cursor-not-allowed"
-                      >
-                        <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
-                          <Headphones size={20} className="text-gray-700 dark:text-gray-300" />
-                        </div>
-                        <span className="text-[13px] font-medium text-gray-900 dark:text-white">Podcast</span>
-                      </button>
-
-                      <button
-                        disabled
-                        className="flex flex-col items-center gap-2 p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 opacity-50 cursor-not-allowed"
-                      >
-                        <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
-                          <FileText size={20} className="text-gray-700 dark:text-gray-300" />
-                        </div>
-                        <span className="text-[13px] font-medium text-gray-900 dark:text-white">Notes</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Summaries */}
-                  {(space.summaries || []).length > 0 && (
+              {/* ─── LEARN TAB CONTENT ─────────────── */}
+              {aiPanelTab === "learn" && (
+                <div className="flex-1 overflow-y-auto bg-[#141420]">
+                  <div className="p-5 space-y-6">
+                    {/* Generate section */}
                     <div>
-                      <div className="flex items-center justify-between mb-3">
-                        <h4 className="text-[13px] font-semibold text-gray-700 dark:text-gray-300">Summary</h4>
-                        <button 
-                          onClick={handleGenerateSummary} 
-                          disabled={generatingSummary} 
-                          className="text-[12px] text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors disabled:opacity-50"
+                      <h4 className="text-[14px] font-semibold text-white mb-3">Generate</h4>
+                      <div className="grid grid-cols-2 gap-3">
+                        <button
+                          onClick={handleGenerateSummary}
+                          disabled={generatingSummary}
+                          className="flex flex-col items-center gap-2 p-4 rounded-xl border border-[#1e1e3a] bg-[#0d0d12] hover:bg-[#1a1a2e] transition-all disabled:opacity-50"
                         >
-                          {generatingSummary ? "Generating..." : "Refresh"}
+                          <div className="w-10 h-10 rounded-lg bg-[#1a1a2e] flex items-center justify-center">
+                            {generatingSummary ? (
+                              <Loader2 size={20} className="animate-spin text-[#8b5cf6]" />
+                            ) : (
+                              <FileText size={20} className="text-[#a78bfa]" />
+                            )}
+                          </div>
+                          <span className="text-[13px] font-medium text-white">Summary</span>
+                        </button>
+
+                        <button
+                          onClick={handleGenerateQuiz}
+                          disabled={generatingQuiz}
+                          className="flex flex-col items-center gap-2 p-4 rounded-xl border border-[#1e1e3a] bg-[#0d0d12] hover:bg-[#1a1a2e] transition-all disabled:opacity-50"
+                        >
+                          <div className="w-10 h-10 rounded-lg bg-[#1a1a2e] flex items-center justify-center">
+                            {generatingQuiz ? (
+                              <Loader2 size={20} className="animate-spin text-[#8b5cf6]" />
+                            ) : (
+                              <Brain size={20} className="text-[#a78bfa]" />
+                            )}
+                          </div>
+                          <span className="text-[13px] font-medium text-white">Quiz</span>
+                        </button>
+
+                        <button disabled className="flex flex-col items-center gap-2 p-4 rounded-xl border border-[#1e1e3a] bg-[#0d0d12] opacity-40 cursor-not-allowed">
+                          <div className="w-10 h-10 rounded-lg bg-[#1a1a2e] flex items-center justify-center">
+                            <GraduationCap size={20} className="text-[#a78bfa]" />
+                          </div>
+                          <span className="text-[13px] font-medium text-white">Flashcards</span>
+                        </button>
+
+                        <button disabled className="flex flex-col items-center gap-2 p-4 rounded-xl border border-[#1e1e3a] bg-[#0d0d12] opacity-40 cursor-not-allowed">
+                          <div className="w-10 h-10 rounded-lg bg-[#1a1a2e] flex items-center justify-center">
+                            <Headphones size={20} className="text-[#a78bfa]" />
+                          </div>
+                          <span className="text-[13px] font-medium text-white">Podcast</span>
                         </button>
                       </div>
-                      <div className="space-y-3">
-                        {(space.summaries || []).map((s) => (
-                          <div key={s.id} className="p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50">
-                            <p className="text-[13px] font-medium mb-2 text-gray-900 dark:text-white">{s.title}</p>
-                            <div className="text-[13px] text-gray-600 dark:text-gray-400 leading-relaxed prose-ai">
-                              <ReactMarkdown remarkPlugins={[remarkGfm]}>{s.content.slice(0, 300)}</ReactMarkdown>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* ═══ CHAT — Next-Gen UI ═══ */}
-                  <div className="flex flex-col flex-1 -mx-5 -mb-6">
-                    {/* Chat header bar */}
-                    <div className="flex items-center justify-between px-5 py-3 border-y border-gray-100 dark:border-gray-800/60 bg-gray-50/50 dark:bg-gray-900/40">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                        <span className="text-[12px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">AI Chat</span>
-                      </div>
-                      {messages.length > 0 && (
-                        <span className="text-[10px] text-gray-400 dark:text-gray-500">{messages.length} messages</span>
-                      )}
-                    </div>
-                    
-                    {/* Messages area */}
-                    <div className="flex-1 overflow-y-auto px-4 py-4 space-y-1 min-h-[200px] max-h-[50vh]" style={{ scrollBehavior: 'smooth' }}>
-                      {messages.length === 0 ? (
-                        /* Empty state */
-                        <div className="flex flex-col items-center justify-center py-10 gap-4">
-                          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 flex items-center justify-center shadow-inner">
-                            <Sparkles size={24} className="text-gray-400 dark:text-gray-500" />
-                          </div>
-                          <div className="text-center">
-                            <p className="text-[14px] font-medium text-gray-700 dark:text-gray-300 mb-1">Your AI study buddy</p>
-                            <p className="text-[12px] text-gray-400 dark:text-gray-500 max-w-[220px] leading-relaxed">Select text from your content or ask me anything below</p>
-                          </div>
-                        </div>
-                      ) : (
-                        messages.map((msg, idx) => {
-                          const isUser = msg.role === "user";
-                          const isLast = idx === messages.length - 1;
-                          const hasQuote = msg.content.startsWith("> ");
-                          const quotePart = hasQuote ? msg.content.split("\n\n")[0].replace(/^> /, "") : null;
-                          const mainContent = hasQuote ? msg.content.split("\n\n").slice(1).join("\n\n") : msg.content;
-
-                          return (
-                            <div key={msg.id} className={`group flex gap-2.5 py-2 ${isUser ? "justify-end" : "justify-start"} ${isLast ? "animate-in fade-in slide-in-from-bottom-2 duration-300" : ""}`}>
-                              {/* AI avatar */}
-                              {!isUser && (
-                                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shrink-0 mt-1 shadow-md shadow-violet-500/20">
-                                  <Sparkles size={12} className="text-white" />
-                                </div>
-                              )}
-
-                              <div className={`max-w-[88%] flex flex-col gap-1 ${isUser ? "items-end" : "items-start"}`}>
-                                {/* Sender label */}
-                                <span className={`text-[10px] font-medium uppercase tracking-wider px-1 ${isUser ? "text-gray-400 dark:text-gray-500" : "text-violet-500 dark:text-violet-400"}`}>
-                                  {isUser ? "You" : "AI"}
-                                </span>
-
-                                {/* Quote block (if user sent selected text) */}
-                                {isUser && quotePart && (
-                                  <div className="px-3 py-2 rounded-xl bg-blue-50 dark:bg-blue-900/20 border-l-2 border-blue-400 dark:border-blue-500 max-w-full">
-                                    <p className="text-[11px] text-blue-700 dark:text-blue-300 leading-relaxed line-clamp-3 italic">{quotePart}</p>
-                                  </div>
-                                )}
-
-                                {/* Message bubble */}
-                                <div className={`px-4 py-3 rounded-2xl relative ${
-                                  isUser
-                                    ? "bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-br-md"
-                                    : "bg-white dark:bg-gray-800/80 text-gray-800 dark:text-gray-100 rounded-bl-md border border-gray-100 dark:border-gray-700/50 shadow-sm"
-                                }`}>
-                                  <div className={`text-[13px] leading-[1.75] prose-ai ${isUser ? "[&_strong]:text-white [&_a]:text-blue-300" : "[&_strong]:text-gray-900 dark:[&_strong]:text-white [&_a]:text-blue-600 dark:[&_a]:text-blue-400"} [&_h1]:text-[16px] [&_h2]:text-[15px] [&_h3]:text-[14px] [&_h1]:font-bold [&_h2]:font-bold [&_h3]:font-semibold [&_h1]:mt-4 [&_h1]:mb-2 [&_h2]:mt-3 [&_h2]:mb-1.5 [&_h3]:mt-2 [&_h3]:mb-1 [&_ul]:space-y-1 [&_ol]:space-y-1 [&_li]:leading-relaxed [&_p]:mb-2 [&_p:last-child]:mb-0 [&_code]:text-[12px] [&_code]:bg-black/5 dark:[&_code]:bg-white/10 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded-md`}>
-                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                      {isUser ? mainContent : msg.content}
-                                    </ReactMarkdown>
-                                  </div>
-                                </div>
-
-                                {/* Actions row (AI messages only) */}
-                                {!isUser && (
-                                  <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pl-1">
-                                    <button
-                                      onClick={() => { navigator.clipboard.writeText(msg.content); }}
-                                      className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                                      title="Copy response"
-                                    >
-                                      <Copy size={11} className="text-gray-400 dark:text-gray-500" />
-                                    </button>
-                                    <button className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors" title="Good response">
-                                      <ThumbsUp size={11} className="text-gray-400 dark:text-gray-500" />
-                                    </button>
-                                    <button className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors" title="Bad response">
-                                      <ThumbsDown size={11} className="text-gray-400 dark:text-gray-500" />
-                                    </button>
-                                  </div>
-                                )}
-
-                                {/* Timestamp */}
-                                <span className={`text-[9px] px-1 ${isUser ? "text-gray-400 dark:text-gray-500" : "text-gray-300 dark:text-gray-600"}`}>
-                                  {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                </span>
-                              </div>
-                            </div>
-                          );
-                        })
-                      )}
-
-                      {/* Typing indicator */}
-                      {sendingChat && (
-                        <div className="flex gap-2.5 py-2 animate-in fade-in slide-in-from-bottom-2 duration-200">
-                          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shrink-0 mt-1 shadow-md shadow-violet-500/20">
-                            <Sparkles size={12} className="text-white" />
-                          </div>
-                          <div className="px-4 py-3 rounded-2xl rounded-bl-md bg-white dark:bg-gray-800/80 border border-gray-100 dark:border-gray-700/50 shadow-sm">
-                            <div className="flex items-center gap-1.5">
-                              <div className="w-2 h-2 rounded-full bg-violet-400 animate-bounce" style={{ animationDelay: '0ms' }} />
-                              <div className="w-2 h-2 rounded-full bg-violet-400 animate-bounce" style={{ animationDelay: '150ms' }} />
-                              <div className="w-2 h-2 rounded-full bg-violet-400 animate-bounce" style={{ animationDelay: '300ms' }} />
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      <div ref={chatEndRef} />
                     </div>
 
-                    {/* ─── Composer ─────────────────────────── */}
-                    <div className="px-4 pb-4 pt-2 border-t border-gray-100 dark:border-gray-800/60 bg-white/60 dark:bg-[#0a0a0a]/60 backdrop-blur-xl">
-                      {/* Quoted text banner */}
-                      {quotedText && (
-                        <div className="mb-2.5 p-2.5 rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200/60 dark:border-blue-800/40 flex items-start justify-between gap-2">
-                          <div className="flex-1 min-w-0 flex items-start gap-2">
-                            <div className="w-1 self-stretch rounded-full bg-blue-500 dark:bg-blue-400 shrink-0" />
-                            <div>
-                              <p className="text-[10px] uppercase tracking-wider text-blue-600 dark:text-blue-400 font-semibold mb-0.5">Selected text</p>
-                              <p className="text-[12px] text-gray-700 dark:text-gray-300 leading-relaxed line-clamp-2">{quotedText}</p>
-                            </div>
-                          </div>
-                          <button onClick={() => setQuotedText(null)} className="p-1 hover:bg-blue-100 dark:hover:bg-blue-800/30 rounded-lg transition-colors shrink-0">
-                            <X size={14} className="text-blue-500 dark:text-blue-400" />
+                    {/* Summaries */}
+                    {(space.summaries || []).length > 0 && (
+                      <div>
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="text-[13px] font-semibold text-[#aaa]">Summary</h4>
+                          <button 
+                            onClick={handleGenerateSummary} 
+                            disabled={generatingSummary} 
+                            className="text-[12px] text-[#666] hover:text-white transition-colors disabled:opacity-50"
+                          >
+                            {generatingSummary ? "Generating..." : "Refresh"}
                           </button>
                         </div>
-                      )}
-
-                      {/* Suggestion chips */}
-                      {!chatInput.trim() && messages.length === 0 && (
-                        <div className="flex flex-wrap gap-1.5 mb-2.5">
-                          {[
-                            { label: "Explain this", icon: <Lightbulb size={11} /> },
-                            { label: "Key takeaways", icon: <FileText size={11} /> },
-                            { label: "Quiz me", icon: <Brain size={11} /> },
-                            { label: "Simplify", icon: <Sparkles size={11} /> },
-                          ].map((chip) => (
-                            <button
-                              key={chip.label}
-                              onClick={() => setChatInput(chip.label)}
-                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gray-100 dark:bg-gray-800 text-[11px] font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white transition-all active:scale-95"
-                            >
-                              {chip.icon} {chip.label}
-                            </button>
+                        <div className="space-y-3">
+                          {(space.summaries || []).map((s) => (
+                            <div key={s.id} className="p-4 rounded-xl border border-[#1e1e3a] bg-[#0d0d12]">
+                              <p className="text-[13px] font-medium mb-2 text-white">{s.title}</p>
+                              <div className="text-[13px] text-[#999] leading-relaxed prose-ai">
+                                <ReactMarkdown remarkPlugins={[remarkGfm]}>{s.content.slice(0, 300)}</ReactMarkdown>
+                              </div>
+                            </div>
                           ))}
                         </div>
-                      )}
+                      </div>
+                    )}
 
-                      {/* Input */}
-                      <div className="relative rounded-2xl bg-gray-100 dark:bg-gray-800/60 focus-within:bg-white dark:focus-within:bg-gray-800 focus-within:ring-2 focus-within:ring-violet-500/30 dark:focus-within:ring-violet-400/30 focus-within:shadow-lg focus-within:shadow-violet-500/5 transition-all duration-200">
+                    {/* Quiz */}
+                    {(space.quizQuestions || []).length > 0 && (
+                      <div>
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="text-[13px] font-semibold text-[#aaa]">Quiz</h4>
+                          {quizSubmitted && (
+                            <div className="flex items-center gap-2">
+                              <span className={`text-[12px] font-bold ${quizPercent >= 70 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                                {quizScore}/{quizTotal} ({quizPercent}%)
+                              </span>
+                              <button onClick={() => { setQuizAnswers({}); setQuizSubmitted(false); }} className="text-[11px] text-[#666] hover:text-white transition-colors flex items-center gap-1">
+                                <RotateCcw size={11} /> Retry
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                        <div className="space-y-4">
+                          {(space.quizQuestions || []).map((q, qi) => {
+                            const answered = quizAnswers[qi] !== undefined;
+                            const correct = quizSubmitted && quizAnswers[qi] === q.correctIndex;
+                            const wrong = quizSubmitted && answered && quizAnswers[qi] !== q.correctIndex;
+                            return (
+                              <div key={q.id} className="p-4 rounded-xl border border-[#1e1e3a] bg-[#0d0d12]">
+                                <p className="text-[13px] font-medium text-white mb-3">{qi + 1}. {q.question}</p>
+                                <div className="space-y-2">
+                                  {(q.options || []).map((opt, oi) => {
+                                    const isSelected = quizAnswers[qi] === oi;
+                                    const isCorrect = quizSubmitted && oi === q.correctIndex;
+                                    return (
+                                      <button
+                                        key={oi}
+                                        onClick={() => !quizSubmitted && setQuizAnswers({ ...quizAnswers, [qi]: oi })}
+                                        disabled={quizSubmitted}
+                                        className={`w-full text-left px-3 py-2.5 rounded-lg text-[13px] transition-all border ${
+                                          isCorrect ? "bg-emerald-500/10 border-emerald-500/40 text-emerald-300" :
+                                          isSelected && quizSubmitted ? "bg-red-500/10 border-red-500/40 text-red-300" :
+                                          isSelected ? "bg-[#8b5cf6]/10 border-[#8b5cf6]/40 text-white" :
+                                          "border-[#1e1e3a] text-[#bbb] hover:bg-[#1a1a2e] hover:text-white"
+                                        }`}
+                                      >
+                                        <div className="flex items-center gap-2">
+                                          {quizSubmitted && isCorrect && <CheckCircle2 size={14} className="text-emerald-400 shrink-0" />}
+                                          {quizSubmitted && isSelected && !isCorrect && <XCircle size={14} className="text-red-400 shrink-0" />}
+                                          <span>{opt}</span>
+                                        </div>
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        {!quizSubmitted && (
+                          <button
+                            onClick={() => setQuizSubmitted(true)}
+                            disabled={Object.keys(quizAnswers).length < (space.quizQuestions || []).length}
+                            className="mt-4 w-full py-3 rounded-xl bg-[#8b5cf6] text-white text-[14px] font-semibold hover:bg-[#7c3aed] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                          >
+                            Submit Answers
+                          </button>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Quick Ask section at bottom of learn tab */}
+                    <div className="pt-2">
+                      <h4 className="text-[13px] font-semibold text-[#aaa] mb-3">Ask AI</h4>
+                      <div className="relative rounded-xl bg-[#0d0d12] border border-[#1e1e3a] focus-within:border-[#8b5cf6]/50 transition-all">
                         <textarea
                           value={chatInput}
                           onChange={(e) => {
                             setChatInput(e.target.value);
                             e.target.style.height = 'auto';
-                            e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
+                            e.target.style.height = Math.min(e.target.scrollHeight, 80) + 'px';
                           }}
                           onKeyDown={(e) => {
                             if (e.key === "Enter" && !e.shiftKey) {
@@ -1068,26 +1087,231 @@ export default function SpaceDetailPage() {
                               handleSendMessage();
                             }
                           }}
-                          placeholder="Ask anything..."
-                          disabled={sendingChat}
+                          placeholder="Ask anything about your content..."
                           rows={1}
-                          className="w-full pl-4 pr-12 pt-3 pb-3 rounded-2xl bg-transparent text-[13px] outline-none resize-none disabled:opacity-50 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 leading-relaxed"
-                          style={{ minHeight: '44px', maxHeight: '120px' }}
+                          className="w-full pl-4 pr-12 py-3 rounded-xl bg-transparent text-[13px] outline-none resize-none text-white placeholder:text-[#555] leading-relaxed"
+                          style={{ minHeight: '44px', maxHeight: '80px' }}
                         />
                         <button
-                          onClick={handleSendMessage}
+                          onClick={() => handleSendMessage()}
                           disabled={!chatInput.trim() || sendingChat}
-                          className={`absolute right-2 bottom-1.5 p-2 rounded-xl transition-all duration-200 ${chatInput.trim() 
-                            ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-lg shadow-violet-500/25 hover:shadow-violet-500/40 scale-100 hover:scale-105 active:scale-95' 
-                            : 'bg-transparent text-gray-300 dark:text-gray-600 scale-90'} disabled:cursor-not-allowed`}
+                          className={`absolute right-2 bottom-1.5 p-2 rounded-lg transition-all ${chatInput.trim() ? 'bg-[#8b5cf6] text-white hover:bg-[#7c3aed]' : 'text-[#333]'} disabled:cursor-not-allowed`}
                         >
-                          {sendingChat ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+                          <Send size={14} />
                         </button>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
+              )}
+
+              {/* ─── CHAT TAB CONTENT ──────────────── */}
+              {aiPanelTab === "chat" && (
+                <div className="flex-1 flex flex-col bg-[#141420] overflow-hidden">
+                  {/* Messages */}
+                  <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4" style={{ scrollBehavior: 'smooth' }}>
+                    {messages.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center h-full gap-4 py-16">
+                        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#8b5cf6]/20 to-[#6366f1]/20 flex items-center justify-center border border-[#8b5cf6]/20">
+                          <Sparkles size={28} className="text-[#8b5cf6]" />
+                        </div>
+                        <div className="text-center">
+                          <p className="text-[15px] font-semibold text-white mb-1">Start a conversation</p>
+                          <p className="text-[12px] text-[#666] max-w-[240px] leading-relaxed">Ask questions about your content, get explanations, and dive deeper into any topic</p>
+                        </div>
+                        {/* Quick-start chips */}
+                        <div className="flex flex-wrap gap-2 justify-center mt-2 max-w-[320px]">
+                          {[
+                            "Explain the key concepts",
+                            "Summarize the main points",
+                            "Quiz me on this material",
+                            "What should I focus on?",
+                          ].map((chip) => (
+                            <button
+                              key={chip}
+                              onClick={() => { setChatInput(chip); handleSendMessage(chip); }}
+                              className="px-3 py-2 rounded-xl bg-[#1a1a2e] border border-[#252545] text-[12px] text-[#aaa] hover:text-white hover:bg-[#252545] hover:border-[#8b5cf6]/30 transition-all"
+                            >
+                              {chip}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      messages.map((msg, idx) => {
+                        const isUser = msg.role === "user";
+                        const isLast = idx === messages.length - 1;
+                        const hasQuote = msg.content.startsWith("> ");
+                        const quotePart = hasQuote ? msg.content.split("\n\n")[0].replace(/^> /, "") : null;
+                        const mainContent = hasQuote ? msg.content.split("\n\n").slice(1).join("\n\n") : msg.content;
+
+                        // Replace [Source N] with styled badges in display
+                        const renderContentWithSources = (text: string) => {
+                          return text.replace(/\[Source (\d+)\]/g, '**⟨Source $1⟩**');
+                        };
+
+                        return (
+                          <div key={msg.id} className={`${isLast ? "animate-in fade-in slide-in-from-bottom-2 duration-300" : ""}`}>
+                            {isUser ? (
+                              /* ── User message ── */
+                              <div className="flex justify-end">
+                                <div className="max-w-[85%]">
+                                  {quotePart && (
+                                    <div className="mb-1.5 px-3 py-2 rounded-xl bg-[#8b5cf6]/10 border-l-2 border-[#8b5cf6] ml-auto max-w-fit">
+                                      <p className="text-[11px] text-[#a78bfa] leading-relaxed line-clamp-2 italic">{quotePart}</p>
+                                    </div>
+                                  )}
+                                  <div className="px-4 py-3 rounded-2xl rounded-br-md bg-[#8b5cf6] text-white">
+                                    <p className="text-[13px] leading-relaxed">{mainContent}</p>
+                                  </div>
+                                  <p className="text-[10px] text-[#444] mt-1 text-right pr-1">
+                                    {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                  </p>
+                                </div>
+                              </div>
+                            ) : (
+                              /* ── AI message ── */
+                              <div className="flex gap-3">
+                                <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#8b5cf6] to-[#6366f1] flex items-center justify-center shrink-0 mt-0.5 shadow-lg shadow-[#8b5cf6]/20">
+                                  <Sparkles size={13} className="text-white" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-[11px] font-semibold text-[#8b5cf6] mb-1.5 uppercase tracking-wider">YesLearn AI</p>
+                                  <div className="text-[13px] leading-[1.8] text-[#ddd] [&_strong]:text-white [&_a]:text-[#8b5cf6] [&_h1]:text-[16px] [&_h2]:text-[15px] [&_h3]:text-[14px] [&_h1]:font-bold [&_h2]:font-bold [&_h3]:font-semibold [&_h1]:text-white [&_h2]:text-white [&_h3]:text-white [&_h1]:mt-4 [&_h1]:mb-2 [&_h2]:mt-3 [&_h2]:mb-1.5 [&_h3]:mt-2 [&_h3]:mb-1 [&_ul]:space-y-1 [&_ol]:space-y-1 [&_li]:leading-relaxed [&_p]:mb-2 [&_p:last-child]:mb-0 [&_code]:text-[12px] [&_code]:bg-white/5 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded-md [&_code]:text-[#e879f9] [&_pre]:bg-[#0d0d12] [&_pre]:p-3 [&_pre]:rounded-xl [&_pre]:border [&_pre]:border-[#1e1e3a] [&_pre]:overflow-x-auto [&_blockquote]:border-l-2 [&_blockquote]:border-[#8b5cf6]/40 [&_blockquote]:pl-3 [&_blockquote]:text-[#999] [&_blockquote]:italic">
+                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                      {renderContentWithSources(msg.content)}
+                                    </ReactMarkdown>
+                                  </div>
+
+                                  {/* Source citations */}
+                                  {msg.sources && msg.sources.length > 0 && (
+                                    <div className="mt-3 flex flex-wrap gap-2">
+                                      {msg.sources.map((src) => (
+                                        <div
+                                          key={src.index}
+                                          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#8b5cf6]/10 border border-[#8b5cf6]/20 text-[11px] text-[#a78bfa] font-medium hover:bg-[#8b5cf6]/20 transition-colors cursor-default"
+                                        >
+                                          <FileText size={11} className="shrink-0" />
+                                          <span className="truncate max-w-[150px]">{src.name}</span>
+                                          <span className="text-[#666] text-[10px] shrink-0">Source {src.index}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+
+                                  {/* Actions */}
+                                  <div className="flex items-center gap-1 mt-2">
+                                    <button
+                                      onClick={() => navigator.clipboard.writeText(msg.content)}
+                                      className="p-1.5 rounded-lg hover:bg-[#1a1a2e] transition-colors"
+                                      title="Copy"
+                                    >
+                                      <Copy size={12} className="text-[#555]" />
+                                    </button>
+                                    <button className="p-1.5 rounded-lg hover:bg-[#1a1a2e] transition-colors" title="Good">
+                                      <ThumbsUp size={12} className="text-[#555]" />
+                                    </button>
+                                    <button className="p-1.5 rounded-lg hover:bg-[#1a1a2e] transition-colors" title="Bad">
+                                      <ThumbsDown size={12} className="text-[#555]" />
+                                    </button>
+                                  </div>
+
+                                  {/* Follow-up questions — only on the last AI message */}
+                                  {isLast && !sendingChat && (msg.followUpQuestions?.length || followUps.length > 0) && (
+                                    <div className="mt-4 space-y-2">
+                                      <p className="text-[11px] font-semibold text-[#666] uppercase tracking-wider">Suggested follow-ups</p>
+                                      {(msg.followUpQuestions?.length ? msg.followUpQuestions : followUps).map((q, i) => (
+                                        <button
+                                          key={i}
+                                          onClick={() => { setChatInput(q); handleSendMessage(q); }}
+                                          className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-[#0d0d12] border border-[#1e1e3a] text-[12px] text-[#bbb] hover:text-white hover:bg-[#1a1a2e] hover:border-[#8b5cf6]/30 transition-all text-left group"
+                                        >
+                                          <ChevronRight size={12} className="text-[#8b5cf6] shrink-0 group-hover:translate-x-0.5 transition-transform" />
+                                          <span className="line-clamp-2">{q}</span>
+                                        </button>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })
+                    )}
+
+                    {/* Typing indicator */}
+                    {sendingChat && (
+                      <div className="flex gap-3 animate-in fade-in slide-in-from-bottom-2 duration-200">
+                        <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#8b5cf6] to-[#6366f1] flex items-center justify-center shrink-0 shadow-lg shadow-[#8b5cf6]/20">
+                          <Sparkles size={13} className="text-white" />
+                        </div>
+                        <div className="px-4 py-3 rounded-2xl rounded-bl-md bg-[#1a1a2e] border border-[#252545]">
+                          <div className="flex items-center gap-1.5">
+                            <div className="w-2 h-2 rounded-full bg-[#8b5cf6] animate-bounce" style={{ animationDelay: '0ms' }} />
+                            <div className="w-2 h-2 rounded-full bg-[#8b5cf6] animate-bounce" style={{ animationDelay: '150ms' }} />
+                            <div className="w-2 h-2 rounded-full bg-[#8b5cf6] animate-bounce" style={{ animationDelay: '300ms' }} />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    <div ref={chatEndRef} />
+                  </div>
+
+                  {/* ─── Chat Composer ──────────────────── */}
+                  <div className="px-4 pb-4 pt-2 border-t border-[#1e1e3a] bg-[#0d0d12]/80 backdrop-blur-xl shrink-0">
+                    {/* Quoted text banner */}
+                    {quotedText && (
+                      <div className="mb-2.5 p-2.5 rounded-xl bg-[#8b5cf6]/10 border border-[#8b5cf6]/20 flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0 flex items-start gap-2">
+                          <div className="w-1 self-stretch rounded-full bg-[#8b5cf6] shrink-0" />
+                          <div>
+                            <p className="text-[10px] uppercase tracking-wider text-[#8b5cf6] font-semibold mb-0.5">Selected text</p>
+                            <p className="text-[12px] text-[#aaa] leading-relaxed line-clamp-2">{quotedText}</p>
+                          </div>
+                        </div>
+                        <button onClick={() => setQuotedText(null)} className="p-1 hover:bg-[#8b5cf6]/20 rounded-lg transition-colors shrink-0">
+                          <X size={14} className="text-[#8b5cf6]" />
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Input */}
+                    <div className="relative rounded-xl bg-[#0d0d12] border border-[#1e1e3a] focus-within:border-[#8b5cf6]/50 focus-within:shadow-lg focus-within:shadow-[#8b5cf6]/5 transition-all">
+                      <textarea
+                        value={chatInput}
+                        onChange={(e) => {
+                          setChatInput(e.target.value);
+                          e.target.style.height = 'auto';
+                          e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && !e.shiftKey) {
+                            e.preventDefault();
+                            handleSendMessage();
+                          }
+                        }}
+                        placeholder="Ask anything..."
+                        disabled={sendingChat}
+                        rows={1}
+                        className="w-full pl-4 pr-12 pt-3 pb-3 rounded-xl bg-transparent text-[13px] outline-none resize-none disabled:opacity-50 text-white placeholder:text-[#555] leading-relaxed"
+                        style={{ minHeight: '44px', maxHeight: '120px' }}
+                      />
+                      <button
+                        onClick={() => handleSendMessage()}
+                        disabled={!chatInput.trim() || sendingChat}
+                        className={`absolute right-2 bottom-1.5 p-2 rounded-lg transition-all duration-200 ${chatInput.trim() 
+                          ? 'bg-[#8b5cf6] text-white shadow-lg shadow-[#8b5cf6]/25 hover:bg-[#7c3aed] active:scale-95' 
+                          : 'text-[#333]'} disabled:cursor-not-allowed`}
+                      >
+                        {sendingChat ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+                      </button>
+                    </div>
+                    <p className="text-[10px] text-[#444] mt-2 text-center">AI may make mistakes. Verify important information.</p>
+                  </div>
+                </div>
+              )}
             </div>
           </>
         )}
@@ -1096,7 +1320,7 @@ export default function SpaceDetailPage() {
         {selectedItem && !aiPanelOpen && (
           <button
             onClick={() => setAIPanelOpen(true)}
-            className="fixed right-6 bottom-6 w-14 h-14 rounded-full bg-black dark:bg-white text-white dark:text-black shadow-lg hover:shadow-xl transition-all flex items-center justify-center z-50 hover:scale-110"
+            className="fixed right-6 bottom-6 w-14 h-14 rounded-2xl bg-gradient-to-br from-[#8b5cf6] to-[#6366f1] text-white shadow-xl shadow-[#8b5cf6]/30 hover:shadow-[#8b5cf6]/50 transition-all flex items-center justify-center z-50 hover:scale-110 active:scale-95"
             title="Open AI Assistant"
           >
             <Sparkles size={24} />
